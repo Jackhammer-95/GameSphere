@@ -268,6 +268,14 @@ class _EditProfilePageState extends State<EditProfilePage> {
                                                     width: 90,
                                                     child: ElevatedButton(
                                                       onPressed: () async {
+                                                        if(_fnameController.text.trim().isEmpty){
+                                                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                                                            content: Text("Please fill in all required fields.",
+                                                            style: TextStyle(color: Colors.white)),
+                                                            backgroundColor: Color(0xFF1E1E24),
+                                                          ));
+                                                          return;
+                                                        }
                                                         bool success = await userProv.updateProfile(
                                                           fname: _fnameController.text,
                                                           lname: _lnameController.text,

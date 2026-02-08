@@ -81,7 +81,7 @@ class _TournamentSettingsPageState extends State<TournamentSettingsPage>{
                         ),
                         const SizedBox(height: 15),
                         _buildNumberSelector(
-                          label: "Number of Legs",
+                          label: "Times Play Each Other",
                           value: _legs,
                           onChanged: (val) => setState(() => _legs = val),
                           min: 1,
@@ -103,22 +103,23 @@ class _TournamentSettingsPageState extends State<TournamentSettingsPage>{
                           min: 2,
                           max: widget.format != 2? min(64, _teamsPerGroup*_groupCount) : 64,
                         ),
+                        const SizedBox(height: 10),
                         _buildSwitchTile(
-                          "  Third Place Match", 
-                          "  Include a bronze medal match for semi-final losers", 
+                          "Third Place Match", 
+                          "Include a bronze medal match for semi-final losers", 
                           _thirdPlaceMatch,
                           (val) => setState((){
                             if(_qualifies == 2){null;}
                             else{_thirdPlaceMatch = val;}
                           }),
                         ),
-                        _buildSwitchTile(
-                          "  Two legged",
-                          "  Decide winner by combining both matches", 
+                        if(widget.sport != 'Cricket')_buildSwitchTile(
+                          "Two legged",
+                          "Decide winner by aggregate score over two Matches", 
                           _twolegged,
                           (val) => setState(() => _twolegged = val),
                         ),
-                        const SizedBox(height: 15),
+                        const SizedBox(height: 20),
                       ],
                   
                       _buildSummaryCard(),
@@ -212,7 +213,6 @@ class _TournamentSettingsPageState extends State<TournamentSettingsPage>{
       opacity: isDisabled? 0.4: 1.0,
       child: ListTile(
         enabled: !isDisabled,
-        contentPadding: const EdgeInsets.symmetric(vertical: 8),
         title: Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         subtitle: Text(sub, style: const TextStyle(color: Colors.grey, fontSize: 12)),
         trailing: Switch(

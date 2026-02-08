@@ -88,7 +88,7 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
                       const SizedBox(height: 20),
                       _buildTextField("Tournament Title*", _titleController, "e.g. Champions League 2026"),
                       const SizedBox(height: 16),
-                      _buildTextField("Host Name", _hostController, "Organizer Name"),
+                      _buildTextField("Host Name*", _hostController, "Organizer Name"),
                       const SizedBox(height: 16),
                       _buildTextField("Description", _descController, "Rules, prizes, or general info...", maxLines: 4),
                       
@@ -137,6 +137,16 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
         const SizedBox(height: 8),
         TextFormField(
           controller: controller,
+          validator: (value){
+            if((value == null || value.isEmpty) && label != 'Description'){
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                content: Text("Please fill in all required fields.", style: TextStyle(color: Colors.white)),
+                backgroundColor: Color(0xFF1E1E24),
+              ));
+              return 'Please enter the $label';
+            }
+            return null;
+          },
           maxLines: maxLines,
           style: const TextStyle(color: Colors.white),
           decoration: InputDecoration(
