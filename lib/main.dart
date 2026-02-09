@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:gamesphere/structures/MyTournament.dart';
 import 'TheProvider.dart';
 import 'Login_actions/LoginPage.dart';
 import 'firebase_options.dart';
@@ -187,7 +188,7 @@ class GameSphereHome extends StatelessWidget {
                                 loggedIn ? {Navigator.push(context, MaterialPageRoute(builder: (context) => const CreateTournamentPage()),)}
                                 :{
                                   Navigator.push(context, MaterialPageRoute(builder: (context) => const GameSphereLogin()),),
-                                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
                                     content: Text("Please login into your account first.", style: TextStyle(color: Colors.white)),
                                     backgroundColor: Color(0xFF1E1E24),
                                   ))
@@ -202,7 +203,7 @@ class GameSphereHome extends StatelessWidget {
                               child: const Text("CREATE TOURNAMENT"),
                             ),
                             if(loggedIn) ElevatedButton(
-                              onPressed: () {},
+                              onPressed: () {Navigator.push(context, MaterialPageRoute(builder: (context) => MyTournament()),);},
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color.fromARGB(255, 57, 57, 81),
                                 foregroundColor: Colors.white,

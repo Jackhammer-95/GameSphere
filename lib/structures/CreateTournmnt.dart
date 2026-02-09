@@ -58,7 +58,7 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
         backgroundColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,
         centerTitle: true,
-        title: context.isMobile? Text("CREATE  TOURNAMENT", style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900,)): null,
+        title: context.isMobile? Text("CREATE  TOURNAMENT", style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900,)): null,
         elevation: 0,
         toolbarHeight: 45.0,
       ),
@@ -83,7 +83,7 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      if(!context.isMobile) Center(child: const Text("CREATE  TOURNAMENT", style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900,))),
+                      if(!context.isMobile) Center(child: const Text("CREATE  TOURNAMENT", style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900,))),
                       _buildSectionTitle("BASIC INFORMATION"),
                       const SizedBox(height: 20),
                       _buildTextField("Tournament Title*", _titleController, "e.g. Champions League 2026"),
@@ -325,8 +325,10 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
               context,
               MaterialPageRoute(
                 builder: (context) => TournamentSettingsPage(
-                  title: _titleController.text,
-                  sport: _selectedSport == 'Others' ? _customSportController.text : _selectedSport,
+                  title: _titleController.text.trim(),
+                  hostname: _hostController.text.trim(),
+                  description: _descController.text.trim(),
+                  sport: _selectedSport == 'Others' ? _customSportController.text.trim() : _selectedSport,
                   format: _selectedFormatIndex,
                 ),
               ),

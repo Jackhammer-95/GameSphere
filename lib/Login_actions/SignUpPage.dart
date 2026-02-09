@@ -54,7 +54,7 @@ class _SignUpPageState extends State<SignUpPage> {
 
       if(mounted){
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Account created!", style: TextStyle(color: Colors.white)), backgroundColor: Color(0xFF1E1E24))
+          const SnackBar(content: Text("Account created!", style: TextStyle(color: Colors.white)), backgroundColor: Color(0xFF1E1E24))
         );
         Navigator.of(context).popUntil((route) => route.isFirst);
       }

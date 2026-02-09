@@ -1,14 +1,20 @@
 import 'package:flutter/material.dart';
 import 'dart:math';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class TournamentSettingsPage extends StatefulWidget {
   final String title;
+  final String hostname;
+  final String description;
   final String sport;
   final int format;
 
   const TournamentSettingsPage({
     super.key,
     required this.title,
+    required this.hostname,
+    required this.description,
     required this.sport,
     required this.format,
   });
@@ -25,13 +31,59 @@ class _TournamentSettingsPageState extends State<TournamentSettingsPage>{
   bool _thirdPlaceMatch = false;
   bool _twolegged = false;
 
+  Future<void> _registerTournament() async{
+    try{
+      final String? userUid = FirebaseAuth.instance.currentUser?.uid;
+
+      if(userUid == null){
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("User not authenticated.", style: TextStyle(color: Colors.white)),backgroundColor: Color(0xFF1E1E24)),
+        );
+      }
+
+      DocumentReference docref = FirebaseFirestore.instance.collection('tournaments').doc();
+      String tournamentId = docref.id;
+      
+      Map<String, dynamic> tournamentData = {
+        'tournament_id': tournamentId,
+        'title': widget.title,
+        'host_name': widget.hostname,
+        'description': widget.description,
+        'sport': widget.sport,
+        'format_index': widget.format,
+        'no_of_groups': widget.format != 2? _groupCount: 0,
+        'teams_per_group': widget.format != 2? _teamsPerGroup: 0,
+        'times_play_all': widget.format != 2? _legs: 0,
+        'qualifies_to_KO': widget.format != 0? _qualifies.toInt(): 0,
+        'third_place_match': _thirdPlaceMatch,
+        'two_legged_knockout': _twolegged,
+        'createdAt': FieldValue.serverTimestamp(),
+        'admin_uid': userUid,
+      };
+
+      await docref.set(tournamentData);
+
+      if(mounted){
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Tournament Created Successfully!", style: TextStyle(color: Colors.white)),backgroundColor: Color(0xFF1E1E24)),
+        );
+        Navigator.of(context).popUntil((route) => route.isFirst);
+      }
+    }
+    catch (e){
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Failed to create tournament.: $e", style: TextStyle(color: Colors.white)),backgroundColor: Color(0xFF1E1E24)),
+        );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF0E0E12),
       appBar: AppBar(
         centerTitle: true,
-        title: Text("${widget.title.toUpperCase()} SETTINGS", style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900),),
+        title: Text("${widget.title.toUpperCase()} SETTINGS", style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900),),
         backgroundColor: const Color(0xFF0E0E12),
         elevation: 0,
         toolbarHeight: 45.0,
@@ -128,7 +180,7 @@ class _TournamentSettingsPageState extends State<TournamentSettingsPage>{
                         height: 50.0,
                         width: double.infinity,
                         child: ElevatedButton(
-                          onPressed: () {},
+                          onPressed: _registerTournament,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Theme.of(context).colorScheme.primary,
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

@@ -81,7 +81,7 @@ void showProfileDialog(BuildContext context, User user) {
                                         style: TextStyle(color: Colors.white, fontSize: 24),
                                       ),
                                     ),
-                                    Text(
+                                    const Text(
                                       "!",
                                       style: TextStyle(color: Colors.white, fontSize: 24),
                                     ),
