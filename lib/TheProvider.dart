@@ -134,7 +134,7 @@ class UserProvider extends ChangeNotifier {
 }
 
 
-// profile: circle dp insert image, banner, bio box, fname*, lname*, UID*, Uni/scl/clg*, email, country, role, phone no, liked sports
-// profile: member since, highlighed 6 trophies(right), 
+// profile: circle dp insert image, banner, liked sports
+// profile: member since, highlighed 6 trophies(right),
 // input: tournt name, description, rules, start date
 // spect sees: tournt name, host, description, rules

@@ -227,9 +227,10 @@ class _TournamentSettingsPageState extends State<TournamentSettingsPage>{
         children: [
           Text(label, style: const TextStyle(fontWeight: FontWeight.bold,)),
           Row(
+            
             children: [
               IconButton(onPressed: value > min? () => {onChanged(value-1),}: null, icon: const Icon(Icons.remove_circle_outline, color: Colors.blue, size: 35,)),
-              Text(" $value ", style: const TextStyle(fontSize: 25, fontWeight: FontWeight.bold)),
+              SizedBox(height:36, width:32, child: Center(child: Text(" $value ", style: const TextStyle(fontSize: 25, fontWeight: FontWeight.bold)))),
               IconButton(onPressed: value < max? () => {onChanged(value+1),}: null, icon: const Icon(Icons.add_circle_outline, color: Colors.blue, size: 35,)),
             ],
           ),
@@ -247,9 +248,10 @@ class _TournamentSettingsPageState extends State<TournamentSettingsPage>{
         children: [
           Expanded(child: Text(label, style: const TextStyle(fontWeight: FontWeight.bold, overflow: TextOverflow.ellipsis))),
           Row(
+
             children: [
               IconButton(onPressed: value > min? () => onChanged(value/2): null, icon: const Icon(Icons.keyboard_double_arrow_left, color: Colors.blue, size: 35,)),
-              Text(" ${value.toInt()} ", style: const TextStyle(fontSize: 25, fontWeight: FontWeight.bold)),
+              SizedBox(height:36, width:32, child: Center(child: Text(" ${value.toInt()} ", style: const TextStyle(fontSize: 25, fontWeight: FontWeight.bold)))),
               IconButton(onPressed: value < max? () => onChanged(value*2): null, icon: const Icon(Icons.keyboard_double_arrow_right, color: Colors.blue, size: 35,)),
             ],
           ),

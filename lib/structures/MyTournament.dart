@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:gamesphere/structures/HomeTournmtPage.dart';
 import 'package:intl/intl.dart';
 import 'package:gamesphere/TheProvider.dart';
 import 'package:gamesphere/widgets/ProfileDialog.dart';
@@ -72,7 +73,7 @@ class MyTournament extends StatelessWidget {
                     icon: context.isMobile ? const Icon(Icons.login, size: 14) : const Icon(Icons.login, size: 18),
                     label: context.isMobile? const Text("LOGIN", style: TextStyle(fontSize: 12.0)) : const Text("LOGIN"),
                   ),
-            )
+              )
             ],
           ),
           body: StreamBuilder<QuerySnapshot>(
@@ -185,6 +186,7 @@ class MyTournament extends StatelessWidget {
                 ),
               onTap: (){
                 // loiya jaw jaygamoto
+                Navigator.push(context, MaterialPageRoute(builder: (context) => TournamentDashboard(tournamentId: data['tournament_id'])),);
               },
             ),
           ),
