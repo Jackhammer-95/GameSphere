@@ -137,11 +137,11 @@ void confirmSignOut(BuildContext context) {
   showDialog(
     context: context,
     builder: (confirmContext) {
-      return Center( // Center is better for a confirmation modal
+      return Center(
         child: Material(
           color: Colors.transparent,
           child: Container(
-            width: 280, // Slightly wider for better text fit
+            width: 280,
             decoration: BoxDecoration(
               color: const Color(0xFF1E1E24),
               borderRadius: BorderRadius.circular(24),
@@ -150,7 +150,6 @@ void confirmSignOut(BuildContext context) {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // 1. Message Section
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: 30, horizontal: 20),
                   child: Text(
@@ -162,7 +161,6 @@ void confirmSignOut(BuildContext context) {
                 
                 const Divider(color: Colors.white10, height: 1),
 
-                // 2. Action Buttons Section
                 IntrinsicHeight( // Ensures the divider matches button height
                   child: Row(
                     children: [
@@ -188,8 +186,7 @@ void confirmSignOut(BuildContext context) {
                           onTap: () async {
                             await FirebaseAuth.instance.signOut();
                             if (context.mounted) {
-                              Navigator.pop(confirmContext); // Close confirm dialog
-                              Navigator.pop(context);        // Close profile dialog
+                              Navigator.of(context).popUntil((route) => route.isFirst);      // Close profile dialog
                             }
                           },
                           child: Container(

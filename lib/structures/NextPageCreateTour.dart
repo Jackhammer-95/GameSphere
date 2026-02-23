@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:gamesphere/TheProvider.dart';
+import 'package:gamesphere/structures/HomeTournmtPage.dart';
 
 class TournamentSettingsPage extends StatefulWidget {
   final String title;
@@ -26,10 +28,13 @@ class TournamentSettingsPage extends StatefulWidget {
 class _TournamentSettingsPageState extends State<TournamentSettingsPage>{
   int _groupCount = 2;
   int _teamsPerGroup = 4;
+  int get _teams => _groupCount*_teamsPerGroup;
   int _legs = 1;
+  double get _matches => _groupCount*((_teamsPerGroup*(_teamsPerGroup-1))/2);
   double _qualifies = 4;
   bool _thirdPlaceMatch = false;
   bool _twolegged = false;
+  bool _isLoading = false;
 
   Future<void> _registerTournament() async{
     try{
@@ -40,6 +45,8 @@ class _TournamentSettingsPageState extends State<TournamentSettingsPage>{
           const SnackBar(content: Text("User not authenticated.", style: TextStyle(color: Colors.white)),backgroundColor: Color(0xFF1E1E24)),
         );
       }
+
+      setState(() => _isLoading = true);
 
       DocumentReference docref = FirebaseFirestore.instance.collection('tournaments').doc();
       String tournamentId = docref.id;
@@ -67,13 +74,20 @@ class _TournamentSettingsPageState extends State<TournamentSettingsPage>{
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Tournament Created Successfully!", style: TextStyle(color: Colors.white)),backgroundColor: Color(0xFF1E1E24)),
         );
-        Navigator.of(context).popUntil((route) => route.isFirst);
+        Navigator.pushAndRemoveUntil(context, MaterialPageRoute(
+            builder: (context) => TournamentDashboard(tournamentId: tournamentId)
+          ),
+          (route) => route.isFirst,
+        );
       }
     }
     catch (e){
       ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("Failed to create tournament.: $e", style: TextStyle(color: Colors.white)),backgroundColor: Color(0xFF1E1E24)),
         );
+    }
+    finally{
+      setState(() => _isLoading = false);
     }
   }
 
@@ -115,7 +129,9 @@ class _TournamentSettingsPageState extends State<TournamentSettingsPage>{
                           value: _groupCount,
                           onChanged: (val) => setState((){
                             _groupCount = val;
-                            if(_qualifies/2 >= _groupCount*_teamsPerGroup){setState(() {_qualifies = _qualifies/2;});}
+                            if(_qualifies/2 >= _teams){setState(() {_qualifies = _qualifies/2;});}
+                            if(_teams > 128){setState(() {_teamsPerGroup = (128/_groupCount).toInt();});}
+                            if(_matches*_legs > 600){setState(() {_legs = max(1, _legs-1);});}
                           }),
                           min: 1,
                           max: 24,
@@ -126,10 +142,12 @@ class _TournamentSettingsPageState extends State<TournamentSettingsPage>{
                           value: _teamsPerGroup,
                           onChanged: (val) => setState((){
                             _teamsPerGroup = val;
-                            if(_qualifies/2 >= _groupCount*_teamsPerGroup){setState(() {_qualifies = _qualifies/2;});}
+                            if(_qualifies/2 >= _teams){setState(() {_qualifies = _qualifies/2;});}
+                            if(_teams > 128){setState(() {_groupCount = (128/_teamsPerGroup).toInt();});}
+                            if(_matches*_legs > 600){setState(() {_legs = max(1, _legs-1);});}
                           }),
                           min: 3,
-                          max: 30,
+                          max: 25,
                         ),
                         const SizedBox(height: 15),
                         _buildNumberSelector(
@@ -137,7 +155,7 @@ class _TournamentSettingsPageState extends State<TournamentSettingsPage>{
                           value: _legs,
                           onChanged: (val) => setState(() => _legs = val),
                           min: 1,
-                          max: 4,
+                          max: min(4, max(1, (600/_matches).toInt())),
                         ),
                         const SizedBox(height: 35),
                       ],
@@ -153,7 +171,7 @@ class _TournamentSettingsPageState extends State<TournamentSettingsPage>{
                             if(_qualifies == 2){_thirdPlaceMatch = false;}
                           }),
                           min: 2,
-                          max: widget.format != 2? min(64, _teamsPerGroup*_groupCount) : 64,
+                          max: widget.format != 2? min(64, _teams.toInt()) : 64,
                         ),
                         const SizedBox(height: 10),
                         _buildSwitchTile(
@@ -176,7 +194,8 @@ class _TournamentSettingsPageState extends State<TournamentSettingsPage>{
                   
                       _buildSummaryCard(),
                       const SizedBox(height: 40),
-                      SizedBox(
+                      _isLoading?Center(child: const CircularProgressIndicator())
+                      : SizedBox(
                         height: 50.0,
                         width: double.infinity,
                         child: ElevatedButton(
@@ -221,17 +240,16 @@ class _TournamentSettingsPageState extends State<TournamentSettingsPage>{
   Widget _buildNumberSelector({required String label, required int value , required Function(int) onChanged, int min = 2, int max = 32}){
     return Container(
       decoration: BoxDecoration(color: const Color(0xFF1E1E24), borderRadius: BorderRadius.circular(16)),
-      padding: EdgeInsets.symmetric(horizontal: 20.0, vertical: 10),
+      padding: EdgeInsets.symmetric(horizontal: context.isMobile? 15.0 : 20.0, vertical: 10),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(fontWeight: FontWeight.bold,)),
+          Text(label, style: TextStyle(fontWeight: FontWeight.bold, fontSize: context.isMobile? null:16)),
           Row(
-            
             children: [
-              IconButton(onPressed: value > min? () => {onChanged(value-1),}: null, icon: const Icon(Icons.remove_circle_outline, color: Colors.blue, size: 35,)),
-              SizedBox(height:36, width:32, child: Center(child: Text(" $value ", style: const TextStyle(fontSize: 25, fontWeight: FontWeight.bold)))),
-              IconButton(onPressed: value < max? () => {onChanged(value+1),}: null, icon: const Icon(Icons.add_circle_outline, color: Colors.blue, size: 35,)),
+              IconButton(onPressed: value > min? () => {onChanged(value-1),}: null, icon: Icon(Icons.remove_circle_outline, color:value == min? Colors.grey :Colors.blue, size: 35,)),
+              SizedBox(height:36, width:36, child: Text(" $value ", style: const TextStyle(fontSize: 25, fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
+              IconButton(onPressed: value < max? () => {onChanged(value+1),}: null, icon: Icon(Icons.add_circle_outline, color:value == max? Colors.grey :Colors.blue, size: 35,)),
             ],
           ),
         ],
@@ -242,17 +260,16 @@ class _TournamentSettingsPageState extends State<TournamentSettingsPage>{
   Widget _buildQualifySelector({required String label, required double value , required Function(double) onChanged, int min = 2, int max = 32}){
     return Container(
       decoration: BoxDecoration(color: const Color(0xFF1E1E24), borderRadius: BorderRadius.circular(16)),
-      padding: EdgeInsets.symmetric(horizontal: 20.0, vertical: 10),
+      padding: EdgeInsets.symmetric(horizontal: context.isMobile? 15.0 : 20.0, vertical: 10),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Expanded(child: Text(label, style: const TextStyle(fontWeight: FontWeight.bold, overflow: TextOverflow.ellipsis))),
+          Expanded(child: Text(label, style: TextStyle(fontWeight: FontWeight.bold, fontSize: context.isMobile? null:16, overflow: TextOverflow.ellipsis))),
           Row(
-
             children: [
-              IconButton(onPressed: value > min? () => onChanged(value/2): null, icon: const Icon(Icons.keyboard_double_arrow_left, color: Colors.blue, size: 35,)),
-              SizedBox(height:36, width:32, child: Center(child: Text(" ${value.toInt()} ", style: const TextStyle(fontSize: 25, fontWeight: FontWeight.bold)))),
-              IconButton(onPressed: value < max? () => onChanged(value*2): null, icon: const Icon(Icons.keyboard_double_arrow_right, color: Colors.blue, size: 35,)),
+              IconButton(onPressed: value > min? () => onChanged(value/2): null, icon: Icon(Icons.keyboard_double_arrow_left, color:value == min? Colors.grey :Colors.blue, size: 35,)),
+              SizedBox(height:36, width:36, child: Text(" ${value.toInt()} ", style: const TextStyle(fontSize: 25, fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
+              IconButton(onPressed: value < max? () => onChanged(value*2): null, icon: Icon(Icons.keyboard_double_arrow_right, color:value >= max? Colors.grey :Colors.blue, size: 35,)),
             ],
           ),
         ],
@@ -311,7 +328,9 @@ class _TournamentSettingsPageState extends State<TournamentSettingsPage>{
           if(widget.format == 2) Text("Maximum teams: ${_qualifies.toInt()}", style: const TextStyle(color: Colors.white, fontSize: 16)),
           const SizedBox(height: 10),
           if(widget.format == 1)... [Text("Up to ${min(_qualifies.toInt(), (_groupCount*_teamsPerGroup).toInt())} teams may advance to knockout", style: const TextStyle(color: Colors.white, fontSize: 16)),
-          const SizedBox(height: 10),]
+          const SizedBox(height: 10),],
+          const Text("FURTHER SETTINGS POSSIBLE ONCE THE TOURNAMENT IS CREATED", style: TextStyle(color: Colors.grey, fontSize: 10, letterSpacing: 1, overflow: TextOverflow.ellipsis)),
+          const SizedBox(height: 10),
         ],
       ),
     );

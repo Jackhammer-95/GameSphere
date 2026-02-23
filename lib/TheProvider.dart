@@ -4,7 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 
 extension ResponsiveContext on BuildContext{
-  bool get isMobile => MediaQuery.of(this).size.width < 1000;
+  bool get isMobile => MediaQuery.of(this).size.width < 800;
   double get screenWidth => (((((MediaQuery.of(this).size.width-16)*12)/50)-103)/3);
 }
 

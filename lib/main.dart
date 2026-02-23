@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:gamesphere/structures/Explore.dart';
 import 'package:gamesphere/structures/MyTournament.dart';
 import 'TheProvider.dart';
 import 'Login_actions/LoginPage.dart';
@@ -216,7 +217,7 @@ class GameSphereHome extends StatelessWidget {
                         ),
                         SizedBox(height: 12.0,),
                         TextButton(
-                          onPressed: () {},
+                          onPressed: () {Navigator.push(context, MaterialPageRoute(builder: (context) => const ExplorePage()),);},
                           style: TextButton.styleFrom(
                             padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
                             foregroundColor: Colors.white,

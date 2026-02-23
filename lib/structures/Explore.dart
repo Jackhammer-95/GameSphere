@@ -1,19 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:gamesphere/Login_actions/LoginPage.dart';
 import 'package:gamesphere/structures/HomeTournmtPage.dart';
 import 'package:intl/intl.dart';
 import 'package:gamesphere/TheProvider.dart';
 import 'package:gamesphere/widgets/ProfileDialog.dart';
 import 'package:provider/provider.dart';
-import 'package:gamesphere/widgets/DeleteTournament.dart';
 
-class MyTournament extends StatelessWidget {
-  const MyTournament({super.key});
+class ExplorePage extends StatelessWidget {
+  const ExplorePage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final String? userUid = FirebaseAuth.instance.currentUser?.uid;
 
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
@@ -29,7 +28,7 @@ class MyTournament extends StatelessWidget {
             centerTitle: false,
             title: Padding(
               padding: const EdgeInsets.only(left: 8.0),
-              child: Text("MY  TOURNAMENTS", style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900)),
+              child: Text("EXPLORE EVENTS", style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900)),
             ),
             actions: [
               Padding(
@@ -63,6 +62,7 @@ class MyTournament extends StatelessWidget {
                 )
                 : OutlinedButton.icon(
                     onPressed: () {
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => const GameSphereLogin()),);
                     },
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Colors.white,
@@ -78,7 +78,7 @@ class MyTournament extends StatelessWidget {
             ],
           ),
           body: StreamBuilder<QuerySnapshot>(
-            stream: FirebaseFirestore.instance.collection('tournaments').where('admin_uid', isEqualTo: userUid).snapshots(),
+            stream: FirebaseFirestore.instance.collection('tournaments').snapshots(),
             builder: (context, snapshot){
               if (snapshot.hasError) return Center(child: Text("Error: ${snapshot.error}"));
               if(snapshot.connectionState == ConnectionState.waiting) {
@@ -97,7 +97,7 @@ class MyTournament extends StatelessWidget {
                 physics: const BouncingScrollPhysics(),
                 itemBuilder: (context, index){
                   var data = docs[index].data() as Map<String, dynamic>;
-                  return _buildTournamentCard(context, data);
+                  return _buildTournamentCard(context, data, loggedIn);
                 },
               );
             },
@@ -107,7 +107,7 @@ class MyTournament extends StatelessWidget {
     );
   }
 
-  Widget _buildTournamentCard(BuildContext context, Map<String, dynamic> data){
+  Widget _buildTournamentCard(BuildContext context, Map<String, dynamic> data, bool isLoggedIn){
     String dateStr = "Recently Created";
     if(data['createdAt'] != null){
       DateTime dt = (data['createdAt'] as Timestamp).toDate();
@@ -167,27 +167,8 @@ class MyTournament extends StatelessWidget {
                                 ),
                                 SizedBox(height: 8),
                                 Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
                                     Expanded(child: Text(data['title'], style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize:context.isMobile?18: 24,))),
-                                    PopupMenuButton(
-                                      icon: Icon(Icons.more_vert),
-                                      color: const Color(0xFF1E1E24),
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                      onSelected: (value){confirmDeleteTournament(context, data['tournament_id']);},
-                                      itemBuilder: (BuildContext context) =>[
-                                        const PopupMenuItem(
-                                          value: 'delete',
-                                          child: Row(
-                                            children: [
-                                              Icon(Icons.delete_outline, color:Colors.redAccent, size: 20),
-                                              SizedBox(width: 10),
-                                              Text("Delete Tournament", style: TextStyle(color: Colors.redAccent)),
-                                            ],
-                                          ),
-                                        )
-                                      ],
-                                    )
                                   ],
                                 ),
                               ],
@@ -203,7 +184,12 @@ class MyTournament extends StatelessWidget {
                   ),
                 ),
               onTap: (){
-                Navigator.push(context, MaterialPageRoute(builder: (context) => TournamentDashboard(tournamentId: data['tournament_id'])),);
+                isLoggedIn?
+                Navigator.push(context, MaterialPageRoute(builder: (context) => TournamentDashboard(tournamentId: data['tournament_id'])),)
+                :ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                  content: Text("Please login into your account first.", style: TextStyle(color: Colors.white)),
+                  backgroundColor: Color(0xFF1E1E24),
+                ));
               },
             ),
           ),

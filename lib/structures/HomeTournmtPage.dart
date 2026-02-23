@@ -6,6 +6,8 @@ import 'package:gamesphere/TabsTournament/InfoTab.dart';
 import 'package:gamesphere/TheProvider.dart';
 import 'package:gamesphere/widgets/ProfileDialog.dart';
 import 'package:provider/provider.dart';
+import 'package:material_symbols_icons/symbols.dart';
+import 'package:gamesphere/widgets/DeleteTournament.dart';
 
 class TournamentDashboard extends StatefulWidget {
   final String tournamentId;
@@ -16,42 +18,47 @@ class TournamentDashboard extends StatefulWidget {
   State<TournamentDashboard> createState() => _TournamentDashboardState();
 }
 
-class _TournamentDashboardState extends State<TournamentDashboard> with TickerProviderStateMixin {
-  late TabController _tabController;
-
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 6, vsync: this);
-  }
+class _TournamentDashboardState extends State<TournamentDashboard>{
+  final String? userUid = FirebaseAuth.instance.currentUser?.uid;
 
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<DocumentSnapshot>(
       stream: FirebaseFirestore.instance.collection('tournaments').doc(widget.tournamentId).snapshots(),
       builder: (context, snapshot) {
-        if(!snapshot.hasData) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+        if(snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator(color: Colors.blueAccent,));
+        }
+        if(!snapshot.hasData || !snapshot.data!.exists) return const Scaffold(backgroundColor: Color(0xFF0E0E12), body: Center(child: CircularProgressIndicator()));
 
         var data = snapshot.data!.data() as Map<String, dynamic>;
+        bool isAdmin = data['admin_uid'] == userUid;
+        int format = data['format_index'];
 
-        return Scaffold(
-          backgroundColor: const Color(0xFF0E0E12),
-          body: NestedScrollView(
-            headerSliverBuilder: (context, innerBoxIsScrolled) {
-              return [
-                _buildSliverAppBar(context, data),
-              ];
-            },
-            body: TabBarView(
-              controller: _tabController,
-              children: [
-                buildInfoTab(context, data),
-                _buildFixturesTab(),
-                buildPointsTableTab(),
-                _buildKnockoutTab(),
-                _buildAskAiTab(),
-                _buildSettingsTab(),
-              ],
+        int tabCount = 5;
+        if (format != 1) tabCount--;
+        if (isAdmin) tabCount++;
+
+        return DefaultTabController(
+          length: tabCount,
+          child: Scaffold(
+            backgroundColor: const Color(0xFF0E0E12),
+            body: NestedScrollView(
+              headerSliverBuilder: (context, innerBoxIsScrolled) {
+                return [
+                  _buildSliverAppBar(context, data, isAdmin, tabCount, format),
+                ];
+              },
+              body: TabBarView(
+                children: [
+                  buildInfoTab(context, data),
+                  _buildFixturesTab(),
+                  if(format != 2)buildPointsTableTab(),
+                  if(format != 0)_buildKnockoutTab(),
+                  _buildAskAiTab(),
+                  if(isAdmin) _buildSettingsTab(),
+                ],
+              ),
             ),
           ),
         );
@@ -59,7 +66,7 @@ class _TournamentDashboardState extends State<TournamentDashboard> with TickerPr
     );
   }
 
-  Widget _buildSliverAppBar(BuildContext context, Map<String, dynamic> data) {
+  Widget _buildSliverAppBar(BuildContext context, Map<String, dynamic> data, bool isAdmin, int tabCount, int format) {
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
@@ -110,15 +117,20 @@ class _TournamentDashboardState extends State<TournamentDashboard> with TickerPr
           flexibleSpace: FlexibleSpaceBar(
             centerTitle: true,
             titlePadding: const EdgeInsets.only(bottom: 50),
-            title: Text(
-              data['title'].toUpperCase(),
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w900,
-                fontSize: 18,
-                letterSpacing: 2,
+            title: SizedBox(
+              width: double.infinity,
+              child: Text(
+                data['title'].toUpperCase(),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 18,
+                  letterSpacing:context.isMobile? 0: 2,
+                ),
               ),
-              overflow: TextOverflow.ellipsis,
             ),
             background: Stack(
               fit: StackFit.expand,
@@ -127,7 +139,7 @@ class _TournamentDashboardState extends State<TournamentDashboard> with TickerPr
                   alignment: Alignment.topCenter,
                   child: Icon(Icons.emoji_events_outlined, size: 100, color: Colors.white.withOpacity(0.1)),
                 ),
-                Positioned(
+                if(!context.isMobile) Positioned(
                   left: -50,
                   top: -20,
                   child: Icon(Icons.emoji_events, size: 200, color: Colors.white.withOpacity(0.08)),
@@ -154,20 +166,19 @@ class _TournamentDashboardState extends State<TournamentDashboard> with TickerPr
                 border: Border(bottom: BorderSide(color: Colors.white.withOpacity(0.05))),
               ),
               child: TabBar(
-                controller: _tabController,
                 isScrollable: false,
                 indicatorColor: Colors.blueAccent,
                 indicatorWeight: 3,
                 labelColor: Colors.white,
                 unselectedLabelColor: Colors.white38,
                 labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 1),
-                tabs: const [
-                  Tab(text: "INFO",),
-                  Tab(text: "FIXTURES"),
-                  Tab(text: "STANDINGS"),
-                  Tab(text: "BRACKETS"),
-                  Tab(text: "ASK"),
-                  Tab(text: "SETTINGS"),
+                tabs: [
+                  context.isMobile? Tab(icon: Icon(Icons.info_outline)): Tab(text: "INFO"),
+                  context.isMobile? Tab(icon: Icon(Icons.calendar_month_outlined)): Tab(text: "FIXTURES"),
+                  if(format != 2) (context.isMobile? Tab(icon: Icon(Icons.format_list_numbered)): Tab(text: "STANDINGS")),
+                  if(format != 0) (context.isMobile? Tab(icon: Icon(Icons.account_tree_outlined)): Tab(text: "BRACKETS")),
+                  context.isMobile? Tab(icon: Icon(Icons.chat_outlined)): Tab(text: "ASK"),
+                  if(isAdmin) (context.isMobile? Tab(icon: Icon(Icons.settings)): Tab(text: "SETTINGS")),
                 ],
               ),
             ),
@@ -188,27 +199,35 @@ class _TournamentDashboardState extends State<TournamentDashboard> with TickerPr
   }
 
   Widget _matchCard() {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E1E24),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          _teamInfo("REAL MADRID", Icons.shield),
-          Column(
-            children: [
-              const Text("VS", style: TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 4),
-              Text("21:45", style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 12)),
-            ],
-          ),
-          _teamInfo("INTER MIAMI", Icons.shield),
-        ],
+    return Align(
+      alignment: Alignment.topCenter,
+      child: Container(
+        constraints: BoxConstraints(maxWidth: 1200),
+        margin: const EdgeInsets.only(bottom: 12),
+        padding:context.isMobile? const EdgeInsets.symmetric(vertical: 16, horizontal: 0) :const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1E1E24),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white.withOpacity(0.05)),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            _teamInfo("REAL MADRID", Icons.shield),
+            SizedBox(height: 50, width: 50, child: Text("0", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 40))),
+            const SizedBox(width: 10),
+            Column(
+              children: [
+                const Text("VS", style: TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 4),
+                Text("21:45", style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 12)),
+              ],
+            ),
+            SizedBox(height: 50, width: 50, child: Text("0", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 40))),
+            const SizedBox(width: 10),
+            _teamInfo("INTER MIAMI", Icons.shield),
+          ],
+        ),
       ),
     );
   }
@@ -241,23 +260,38 @@ class _TournamentDashboardState extends State<TournamentDashboard> with TickerPr
   }
 
   Widget _buildSettingsTab() {
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        _settingsTile(Icons.edit, "Edit Basic Info"),
-        _settingsTile(Icons.people, "Manage Admins"),
-        _settingsTile(Icons.notifications, "Announcements"),
-        _settingsTile(Icons.delete_forever, "Delete Tournament", isDanger: true),
-      ],
+    return Align(
+      alignment: Alignment.topCenter,
+      child: Container(
+        constraints: BoxConstraints(maxWidth: 1000),
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            _settingsTile(Icons.edit, "Edit Basic Info"),
+            const SizedBox(height: 5),
+            _settingsTile(Symbols.apparel_rounded, "Manage Participants"),
+            const SizedBox(height: 5),
+            _settingsTile(Icons.people, "Manage Admins"),
+            const SizedBox(height: 5),
+            _settingsTile(Icons.notifications, "Announcements"),
+            const SizedBox(height: 5),
+            _settingsTile(Icons.delete_forever, "Delete Tournament", isDanger: true),
+          ],
+        ),
+      ),
     );
   }
 
   Widget _settingsTile(IconData icon, String title, {bool isDanger = false}) {
     return ListTile(
-      leading: Icon(icon, color: isDanger ? Colors.redAccent : Colors.white70),
+      leading: Icon(icon, fill: 1, color: isDanger ? Colors.redAccent : Colors.white70),
       title: Text(title, style: TextStyle(color: isDanger ? Colors.redAccent : Colors.white)),
       trailing: const Icon(Icons.chevron_right, color: Colors.white24),
-      onTap: () {},
+      onTap: () {
+        if(icon == Icons.delete_forever){
+          confirmDeleteTournament(context, widget.tournamentId, call: true);
+        }
+      },
     );
   }
 
