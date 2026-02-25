@@ -1,13 +1,14 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:gamesphere/TabsTournament/AskAI.dart';
+import 'package:gamesphere/TabsTournament/Knockout.dart';
+import 'package:gamesphere/TabsTournament/TourSettings.dart';
 import 'package:gamesphere/TabsTournament/pointsTableTab.dart';
 import 'package:gamesphere/TabsTournament/InfoTab.dart';
 import 'package:gamesphere/TheProvider.dart';
 import 'package:gamesphere/widgets/ProfileDialog.dart';
 import 'package:provider/provider.dart';
-import 'package:material_symbols_icons/symbols.dart';
-import 'package:gamesphere/widgets/DeleteTournament.dart';
 
 class TournamentDashboard extends StatefulWidget {
   final String tournamentId;
@@ -32,7 +33,7 @@ class _TournamentDashboardState extends State<TournamentDashboard>{
         if(!snapshot.hasData || !snapshot.data!.exists) return const Scaffold(backgroundColor: Color(0xFF0E0E12), body: Center(child: CircularProgressIndicator()));
 
         var data = snapshot.data!.data() as Map<String, dynamic>;
-        bool isAdmin = data['admin_uid'] == userUid;
+        bool isAdmin = (data['admins'] as List).contains(userUid);
         int format = data['format_index'];
 
         int tabCount = 5;
@@ -50,13 +51,14 @@ class _TournamentDashboardState extends State<TournamentDashboard>{
                 ];
               },
               body: TabBarView(
+                physics: const NeverScrollableScrollPhysics(),
                 children: [
                   buildInfoTab(context, data),
                   _buildFixturesTab(),
                   if(format != 2)buildPointsTableTab(),
-                  if(format != 0)_buildKnockoutTab(),
-                  _buildAskAiTab(),
-                  if(isAdmin) _buildSettingsTab(),
+                  if(format != 0)buildKnockoutTab(),
+                  buildAskAiTab(),
+                  if(isAdmin) SettingsTab(tournamentId: widget.tournamentId, data: data, userUid: userUid,),
                 ],
               ),
             ),
@@ -241,68 +243,6 @@ class _TournamentDashboardState extends State<TournamentDashboard>{
           Text(name, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
         ],
       ),
-    );
-  }
-
-  
-
-  Widget _buildKnockoutTab() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.account_tree_outlined, size: 100, color: Colors.white.withOpacity(0.05)),
-          const SizedBox(height: 20),
-          const Text("KNOCKOUT BRACKET GENERATING...", style: TextStyle(color: Colors.white24)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSettingsTab() {
-    return Align(
-      alignment: Alignment.topCenter,
-      child: Container(
-        constraints: BoxConstraints(maxWidth: 1000),
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            _settingsTile(Icons.edit, "Edit Basic Info"),
-            const SizedBox(height: 5),
-            _settingsTile(Symbols.apparel_rounded, "Manage Participants"),
-            const SizedBox(height: 5),
-            _settingsTile(Icons.people, "Manage Admins"),
-            const SizedBox(height: 5),
-            _settingsTile(Icons.notifications, "Announcements"),
-            const SizedBox(height: 5),
-            _settingsTile(Icons.delete_forever, "Delete Tournament", isDanger: true),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _settingsTile(IconData icon, String title, {bool isDanger = false}) {
-    return ListTile(
-      leading: Icon(icon, fill: 1, color: isDanger ? Colors.redAccent : Colors.white70),
-      title: Text(title, style: TextStyle(color: isDanger ? Colors.redAccent : Colors.white)),
-      trailing: const Icon(Icons.chevron_right, color: Colors.white24),
-      onTap: () {
-        if(icon == Icons.delete_forever){
-          confirmDeleteTournament(context, widget.tournamentId, call: true);
-        }
-      },
-    );
-  }
-
-  Widget _buildAskAiTab(){
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Icon(Icons.analytics_outlined, size: 100, color: Colors.white.withOpacity(0.05)),
-        const SizedBox(height: 20),
-        Center(child: Text("Ask AI", style: TextStyle(color: Colors.white24))),
-      ],
     );
   }
 }

@@ -78,7 +78,7 @@ class MyTournament extends StatelessWidget {
             ],
           ),
           body: StreamBuilder<QuerySnapshot>(
-            stream: FirebaseFirestore.instance.collection('tournaments').where('admin_uid', isEqualTo: userUid).snapshots(),
+            stream: FirebaseFirestore.instance.collection('tournaments').where('admins', arrayContains: userUid).snapshots(),
             builder: (context, snapshot){
               if (snapshot.hasError) return Center(child: Text("Error: ${snapshot.error}"));
               if(snapshot.connectionState == ConnectionState.waiting) {

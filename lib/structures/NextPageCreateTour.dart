@@ -65,7 +65,8 @@ class _TournamentSettingsPageState extends State<TournamentSettingsPage>{
         'third_place_match': _thirdPlaceMatch,
         'two_legged_knockout': _twolegged,
         'createdAt': FieldValue.serverTimestamp(),
-        'admin_uid': userUid,
+        'creator_id': userUid,
+        'admins':[userUid],
       };
 
       await docref.set(tournamentData);
@@ -83,11 +84,9 @@ class _TournamentSettingsPageState extends State<TournamentSettingsPage>{
     }
     catch (e){
       ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Failed to create tournament.: $e", style: TextStyle(color: Colors.white)),backgroundColor: Color(0xFF1E1E24)),
-        );
-    }
-    finally{
-      setState(() => _isLoading = false);
+        SnackBar(content: Text("Failed to create tournament.: $e", style: TextStyle(color: Colors.white)),backgroundColor: Color(0xFF1E1E24)),
+      );
+      if(mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -131,7 +130,7 @@ class _TournamentSettingsPageState extends State<TournamentSettingsPage>{
                             _groupCount = val;
                             if(_qualifies/2 >= _teams){setState(() {_qualifies = _qualifies/2;});}
                             if(_teams > 128){setState(() {_teamsPerGroup = (128/_groupCount).toInt();});}
-                            if(_matches*_legs > 600){setState(() {_legs = max(1, _legs-1);});}
+                            if(_matches*_legs > 600){setState(() {_legs = max(1, (600/_matches).toInt());});}
                           }),
                           min: 1,
                           max: 24,
@@ -144,7 +143,7 @@ class _TournamentSettingsPageState extends State<TournamentSettingsPage>{
                             _teamsPerGroup = val;
                             if(_qualifies/2 >= _teams){setState(() {_qualifies = _qualifies/2;});}
                             if(_teams > 128){setState(() {_groupCount = (128/_teamsPerGroup).toInt();});}
-                            if(_matches*_legs > 600){setState(() {_legs = max(1, _legs-1);});}
+                            if(_matches*_legs > 600){setState(() {_legs = max(1, (600/_matches).toInt());});}
                           }),
                           min: 3,
                           max: 25,

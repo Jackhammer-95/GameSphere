@@ -166,8 +166,8 @@ class _GameSphereLoginState extends State<GameSphereLogin> {
                                   backgroundColor: Color(0xFF1E1E24)
                                 ),
                               );
+                              if(mounted) setState(() {_isLoading = false;});
                             }
-                            finally{setState(() {_isLoading = false;});}
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: _isLoading? null: Theme.of(context).colorScheme.primary,

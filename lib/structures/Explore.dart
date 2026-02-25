@@ -21,7 +21,8 @@ class ExplorePage extends StatelessWidget {
         final User? user = snapshot.data;
 
         return Scaffold(
-          backgroundColor: const Color(0xFF0E0E12),
+          backgroundColor: const Color.fromARGB(255, 24, 24, 31),
+          extendBodyBehindAppBar: context.isMobile? false: true,
           appBar: AppBar(
             backgroundColor: Colors.transparent,
             surfaceTintColor: Colors.transparent,
@@ -77,30 +78,40 @@ class ExplorePage extends StatelessWidget {
               )
             ],
           ),
-          body: StreamBuilder<QuerySnapshot>(
-            stream: FirebaseFirestore.instance.collection('tournaments').snapshots(),
-            builder: (context, snapshot){
-              if (snapshot.hasError) return Center(child: Text("Error: ${snapshot.error}"));
-              if(snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator(color: Colors.blueAccent,));
-              }
-        
-              final docs = snapshot.data!.docs;
-        
-              if(docs.isEmpty){
-                return _buildEmptyState();
-              }
-        
-              return ListView.builder(
-                itemCount: docs.length,
-                padding: const EdgeInsets.all(16),
-                physics: const BouncingScrollPhysics(),
-                itemBuilder: (context, index){
-                  var data = docs[index].data() as Map<String, dynamic>;
-                  return _buildTournamentCard(context, data, loggedIn);
-                },
-              );
-            },
+          body: Container(
+            width: double.infinity,
+            decoration: BoxDecoration(
+              image: context.isMobile? null
+              : DecorationImage(
+                image: AssetImage("Assets/images/Homepage_extended_GameSphere.jpg"),
+                fit: BoxFit.cover,
+              )
+            ),
+            child: StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance.collection('tournaments').snapshots(),
+              builder: (context, snapshot){
+                if (snapshot.hasError) return Center(child: Text("Error: ${snapshot.error}"));
+                if(snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator(color: Colors.blueAccent,));
+                }
+                    
+                final docs = snapshot.data!.docs;
+                    
+                if(docs.isEmpty){
+                  return _buildEmptyState();
+                }
+                    
+                return ListView.builder(
+                  itemCount: docs.length,
+                  padding: const EdgeInsets.all(16),
+                  physics: const BouncingScrollPhysics(),
+                  itemBuilder: (context, index){
+                    var data = docs[index].data() as Map<String, dynamic>;
+                    return _buildTournamentCard(context, data, loggedIn);
+                  },
+                );
+              },
+            ),
           ),
         );
       }
@@ -133,7 +144,7 @@ class ExplorePage extends StatelessWidget {
                       end: Alignment.bottomRight,
                       colors: [
                         const Color(0xFF1E1E24),
-                        const Color(0xFF1E1E24).withOpacity(0.8),
+                        const Color.fromARGB(255, 46, 46, 55),
                       ],
                     ),
                     border: Border.all(color: Colors.white.withOpacity(0.05), width: 1),
