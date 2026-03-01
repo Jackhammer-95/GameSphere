@@ -173,6 +173,7 @@ class MyTournament extends StatelessWidget {
                                     PopupMenuButton(
                                       icon: Icon(Icons.more_vert),
                                       color: const Color(0xFF1E1E24),
+                                      offset: const Offset(0, 40),
                                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                                       onSelected: (value){confirmDeleteTournament(context, data['tournament_id']);},
                                       itemBuilder: (BuildContext context) =>[

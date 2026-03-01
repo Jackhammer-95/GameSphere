@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 Widget buildInfoTab(BuildContext context, Map<String, dynamic> data) {
   return SingleChildScrollView(
@@ -13,9 +14,15 @@ Widget buildInfoTab(BuildContext context, Map<String, dynamic> data) {
             children: [
               Row(
                 children: [
-                  _infoStatCard("HOST", data['host_name'] ?? "N/A", Icons.person_pin_rounded),
+                  _infoStatCard(context, "TOURNAMENT ID", data['tournament_id'] ?? "N/A", Icons.tag),
                   const SizedBox(width: 10),
-                  _infoStatCard("SPORT", data['sport'] ?? "General", Icons.sports_basketball_rounded),
+                  _infoStatCard(context, "SPORT", data['sport'] ?? "General", Icons.sports_basketball_rounded),
+                ],
+              ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  _infoStatCard(context, "HOST", data['host_name'] ?? "N/A", Icons.person_pin_rounded),
                 ],
               ),
               const SizedBox(height: 30),
@@ -70,7 +77,7 @@ Widget buildInfoTab(BuildContext context, Map<String, dynamic> data) {
   );
 }
 
-Widget _infoStatCard(String label, String value, IconData icon) {
+Widget _infoStatCard(BuildContext context, String label, String value, IconData icon) {
   return Expanded(
     child: Container(
       padding: const EdgeInsets.all(12),
@@ -89,7 +96,28 @@ Widget _infoStatCard(String label, String value, IconData icon) {
           const SizedBox(height: 8),
           Text(label, style: const TextStyle(color: Colors.white38, fontSize: 11,)),
           const SizedBox(height: 2),
-          Text(value, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold, overflow: TextOverflow.ellipsis)),
+          Row(
+            children: [
+              if(label == "TOURNAMENT ID") IconButton(
+                onPressed: () async{
+                  await Clipboard.setData(ClipboardData(text: value));
+
+                  if(context.mounted){
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text("Copied to clipboard", style: const TextStyle(color: Colors.white)),
+                        backgroundColor: const Color(0xFF1E1E24),
+                        duration: const Duration(seconds: 2)
+                      )
+                    );
+                  }
+                },
+                icon: Icon(Icons.copy, size: 18),
+                constraints: const BoxConstraints(), padding: const EdgeInsets.only(right: 8), visualDensity: VisualDensity.compact
+              ),
+              Expanded(child: Text(value, maxLines: 1, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold, overflow: TextOverflow.ellipsis))),
+            ],
+          ),
         ],
       ),
     ),

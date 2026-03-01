@@ -55,10 +55,10 @@ class _TournamentDashboardState extends State<TournamentDashboard>{
                 children: [
                   buildInfoTab(context, data),
                   _buildFixturesTab(),
-                  if(format != 2)buildPointsTableTab(),
+                  if(format != 2)buildPointsTableTab(data: data),
                   if(format != 0)buildKnockoutTab(),
                   buildAskAiTab(),
-                  if(isAdmin) SettingsTab(tournamentId: widget.tournamentId, data: data, userUid: userUid,),
+                  if(isAdmin) SettingsTab(tournamentId: widget.tournamentId, data: data, userId: userUid,),
                 ],
               ),
             ),
@@ -137,9 +137,14 @@ class _TournamentDashboardState extends State<TournamentDashboard>{
             background: Stack(
               fit: StackFit.expand,
               children: [
-                Align(
-                  alignment: Alignment.topCenter,
-                  child: Icon(Icons.emoji_events_outlined, size: 100, color: Colors.white.withOpacity(0.1)),
+                Positioned(
+                  top: context.isMobile? 30: 5,
+                  right: 0,
+                  left: 0,
+                  child: Align(
+                    alignment:Alignment.topCenter,
+                    child: Icon(Icons.emoji_events_outlined, size: 100, color: Colors.white.withOpacity(0.1)),
+                  ),
                 ),
                 if(!context.isMobile) Positioned(
                   left: -50,

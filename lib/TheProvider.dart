@@ -135,6 +135,5 @@ class UserProvider extends ChangeNotifier {
 
 
 // profile: circle dp insert image, banner, liked sports
-// profile: member since, highlighed 6 trophies(right),
-// input: tournt name, description, rules, start date
-// spect sees: tournt name, host, description, rules
+// tournament password, tournament id public, manage participants with groupwise, enter participant with string or team id(if have account)
+//  

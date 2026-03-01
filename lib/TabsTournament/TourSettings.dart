@@ -1,14 +1,15 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:gamesphere/widgets/DeleteTournament.dart';
+import 'package:gamesphere/TabsTournament/ListTilesTourSettings/manageAdmin.dart';
+import 'package:gamesphere/TabsTournament/ListTilesTourSettings/participantsManage.dart';
 
 class SettingsTab extends StatefulWidget {
   final String tournamentId;
   final Map<String, dynamic> data;
-  final String? userUid;
+  final String? userId;
 
-  const SettingsTab({super.key, required this.tournamentId, required this.data, required this.userUid});
+  const SettingsTab({super.key, required this.tournamentId, required this.data, required this.userId});
 
   @override
   State<SettingsTab> createState() => _SettingsTabState();
@@ -16,7 +17,6 @@ class SettingsTab extends StatefulWidget {
 
 class _SettingsTabState extends State<SettingsTab> {
   final PageController _settingsPageController = PageController();
-  final TextEditingController _adminEmailController = TextEditingController();
   
   void _navigatePage(int targetpage){
     _settingsPageController.jumpToPage(targetpage-1);
@@ -33,9 +33,9 @@ class _SettingsTabState extends State<SettingsTab> {
         _buildEmptyPage(),
         _buildEditInfo(),
         _buildEmptyPage(),
-        _buildManageParticipants(),
+        ManageParticipants(data: widget.data, settingsPageController: _settingsPageController),
         _buildEmptyPage(),
-        _buildManageAdmins(),
+        ManageAdmin(tournamentId: widget.tournamentId, data: widget.data, userId: widget.userId, settingsPageController: _settingsPageController),
       ],
     );
   }
@@ -109,266 +109,6 @@ class _SettingsTabState extends State<SettingsTab> {
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildManageParticipants(){
-    return Align(
-      alignment: Alignment.topCenter,
-      child: Container(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.arrow_back_ios, color: Colors.blueAccent),
-                  onPressed: (){
-                    _settingsPageController.jumpToPage(1);
-                    _settingsPageController.animateToPage(0, duration: Duration(milliseconds: 200), curve: Curves.easeInOut);
-                  },
-                ),
-                const SizedBox(width: 10),
-                const Text("MANAGE  PARTICIPANTS", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
-              ],
-            )
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildManageAdmins(){
-    return Align(
-      alignment: Alignment.topCenter,
-      child: Container(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.arrow_back_ios, color: Colors.blueAccent),
-                  onPressed: (){
-                    _settingsPageController.jumpToPage(1);
-                    _settingsPageController.animateToPage(0, duration: Duration(milliseconds: 200), curve: Curves.easeInOut);
-                  },
-                ),
-                const SizedBox(width: 10),
-                const Text("MANAGE  ADMINS", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
-                const Spacer(),
-                Text("${(widget.data['admins']?.length ?? 0)}/5", style: TextStyle(fontSize: 15)),
-                const SizedBox(width: 20),
-                ElevatedButton(
-                  onPressed: () {
-                    if((widget.data['admins']?.length ?? 0) < 5) _showAddAdminDialog();
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor:((widget.data['admins']?.length ?? 0) < 5)? Theme.of(context).colorScheme.primary
-                    : const Color.fromARGB(255, 57, 57, 81),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  child: Text("ADD ADMIN", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                ),
-                const SizedBox(width: 10),
-              ],
-            ),
-            const SizedBox(height: 20),
-            Expanded(
-              child: Align(
-                alignment: Alignment.topCenter,
-                child: Container(
-                  constraints: BoxConstraints(maxWidth: 700),
-                  child: _buildAdminsList(),
-                ),
-              ),
-            )
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAdminsList(){
-    List adminIds = widget.data['admins']?? [];
-    return ListView.separated(
-      itemCount: adminIds.length,
-      separatorBuilder: (context, Index) => const SizedBox(height: 12),
-      itemBuilder: (context, index){
-        String uid = adminIds[index];
-
-        return FutureBuilder<DocumentSnapshot>(
-          future: FirebaseFirestore.instance.collection('users').doc(uid).get(),
-          builder: (context, snapshot){
-            String name = snapshot.hasData ? "${snapshot.data!['firstname']} ${snapshot.data!['lastname']}" : "Loading...";
-            bool isCreator = uid == widget.data['creator_id'];
-
-            return ListTile(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
-              leading: const CircleAvatar(backgroundColor: Colors.white10, child: Icon(Icons.person, color: Colors.white)),
-              title: Text(name, style: const TextStyle(color: Colors.white)),
-              trailing: (!isCreator && ((widget.userUid == widget.data['creator_id']) || (uid == widget.userUid)))? IconButton(
-                icon: const Icon(Icons.remove_circle_outline, color: Colors.redAccent,),
-                onPressed: () => _removeAdmin(context , uid, name),
-              ): null,
-            );
-          },
-        );
-      },
-    );
-  }
-
-  Future<void> _addAdminByEmail() async {
-    String email = _adminEmailController.text.trim();
-    if (email.isEmpty) return;
-
-    List admins = widget.data['admins'] ?? [];
-    if(admins.length >= 5){
-      _showSnackBar("Maximum limit of 5 admins raeched.");
-      return;
-    }
-
-    try{
-      var userQuery = await FirebaseFirestore.instance.collection('users').where('email', isEqualTo: email).limit(1).get();
-
-      if(userQuery.docs.isEmpty){
-        _showSnackBar("User with this email not found.");
-        return;
-      }
-
-      String newAdminId = userQuery.docs.first.id;
-
-      if(admins.contains(newAdminId)){
-        _showSnackBar("User is already an admin.");
-        return;
-      }
-
-      await FirebaseFirestore.instance.collection('tournaments').doc(widget.tournamentId).update({
-        'admins': FieldValue.arrayUnion([newAdminId])
-      });
-
-      _adminEmailController.clear();
-      Navigator.pop(context);
-      _showSnackBar("Admin set successfully!");
-    } catch(e){
-      _showSnackBar("Error adding admin: $e");
-    }
-  }
-
-  void _removeAdmin(BuildContext context, String id, String name) {
-  showDialog(
-    context: context,
-    builder: (confirmContext) {
-      return Center(
-        child: Material(
-          color: Colors.transparent,
-          child: Container(
-            width: 280,
-            decoration: BoxDecoration(
-              color: const Color(0xFF1E1E24),
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: Colors.white10),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Padding(
-                  padding: EdgeInsets.symmetric(vertical: 30, horizontal: 20),
-                  child: Text(
-                    "Remove $name as admin?",
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.white, fontSize: 16),
-                  ),
-                ),
-                
-                const Divider(color: Colors.white10, height: 1),
-
-                IntrinsicHeight(
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: InkWell(
-                          borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(24)),
-                          onTap: () => Navigator.pop(confirmContext),
-                          child: Container(
-                            alignment: Alignment.center,
-                            height: 60,
-                            child: const Text("Cancel", style: TextStyle(color: Colors.purple, fontSize: 16.0, fontWeight: FontWeight.bold)),
-                          ),
-                        ),
-                      ),
-                      
-                      const VerticalDivider(color: Colors.white10, width: 1),
-
-                      Expanded(
-                        child: InkWell(
-                          borderRadius: const BorderRadius.only(bottomRight: Radius.circular(24)),
-                          onTap: () async {
-                            try{
-                              await FirebaseFirestore.instance.collection('tournaments').doc(widget.tournamentId).update({
-                                'admins': FieldValue.arrayRemove([id])
-                              });
-
-                              Navigator.pop(confirmContext);
-
-                              _showSnackBar("$name successfully removed as admin.");
-                            } catch(e){
-                              _showSnackBar("Error: failed to remove as admin. $e");
-                            }
-                          },
-                          child: Container(
-                            alignment: Alignment.center,
-                            height: 60,
-                            child: const Text(
-                              "Remove",
-                              style: TextStyle(color: Colors.redAccent, fontSize: 16.0, fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-    },
-  );
-}
-
-  void _showSnackBar(String text) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(text, style: const TextStyle(color: Colors.white)), backgroundColor: const Color(0xFF1E1E24))
-    );
-  }
-
-  void _showAddAdminDialog(){
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1E1E24),
-        title: const Text("ADD ADMIN", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        content: TextField(
-          controller: _adminEmailController,
-          style: const TextStyle(color: Colors.white),
-          decoration: const InputDecoration(
-            hintText: "Enter user email",
-            hintStyle: TextStyle(color: Colors.white24),
-            enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white10)),
-          ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("CANCEL")),
-          ElevatedButton(onPressed: _addAdminByEmail, child: const Text("ADD")),
-        ],
-      )
     );
   }
 
