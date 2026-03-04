@@ -14,7 +14,7 @@ Widget buildInfoTab(BuildContext context, Map<String, dynamic> data) {
             children: [
               Row(
                 children: [
-                  _infoStatCard(context, "TOURNAMENT ID", data['tournament_id'] ?? "N/A", Icons.tag),
+                  _infoStatCard(context, "HOST", data['host_name'] ?? "N/A", Icons.person_pin_rounded),
                   const SizedBox(width: 10),
                   _infoStatCard(context, "SPORT", data['sport'] ?? "General", Icons.sports_basketball_rounded),
                 ],
@@ -22,7 +22,7 @@ Widget buildInfoTab(BuildContext context, Map<String, dynamic> data) {
               const SizedBox(height: 20),
               Row(
                 children: [
-                  _infoStatCard(context, "HOST", data['host_name'] ?? "N/A", Icons.person_pin_rounded),
+                  _infoStatCard(context, "TOURNAMENT ID", data['tournament_id'] ?? "N/A", Icons.tag),
                 ],
               ),
               const SizedBox(height: 30),

@@ -5,10 +5,13 @@ import 'package:intl/intl.dart';
 
 extension ResponsiveContext on BuildContext{
   bool get isMobile => MediaQuery.of(this).size.width < 800;
-  double get screenWidth => (((((MediaQuery.of(this).size.width-16)*12)/50)-103)/3);
+  double get screenWidth => MediaQuery.of(this).size.width;
+  double get screenHeight => MediaQuery.of(this).size.height;
+  double get boxWidth => (((((MediaQuery.of(this).size.width-16)*12)/50)-103)/3);
 }
 
 class UserProvider extends ChangeNotifier {
+  String? _uid;
   String? _firstName;
   String? _lastName;
   String? _studentId;
@@ -24,6 +27,7 @@ class UserProvider extends ChangeNotifier {
   Timestamp? _createdAt;
   bool _isLoading = false;
 
+  String get uid => _uid ?? "";
   String get firstName => _firstName ?? "";
   String get lastName => _lastName ?? "";
   String get id => _studentId ?? "";
@@ -58,8 +62,10 @@ class UserProvider extends ChangeNotifier {
   void _setupAuthListener() {
     FirebaseAuth.instance.authStateChanges().listen((User? user) {
       if (user != null) {
+        _uid = user.uid;
         fetchUserData(user.uid);
       } else {
+        _uid = null;
         _firstName = null;
         _role = null;
         notifyListeners();

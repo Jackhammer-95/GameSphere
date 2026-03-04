@@ -18,11 +18,20 @@ class ExplorePage extends StatefulWidget {
 class _ExplorePageState extends State<ExplorePage> {
   String _searchQuery = "";
   final TextEditingController _searchController = TextEditingController();
+  Stream<QuerySnapshot>? _tournamentStream;
+  bool _obsecurePassword = true;
+
   void _handleSearch(){
     setState(() {
       _searchQuery = _searchController.text.trim().toLowerCase();
     });
     FocusScope.of(context).unfocus();
+  }
+
+  @override
+  void initState(){
+    super.initState();
+    _tournamentStream = FirebaseFirestore.instance.collection('tournaments').snapshots();
   }
 
   @override
@@ -127,7 +136,7 @@ class _ExplorePageState extends State<ExplorePage> {
                 ],
               ),
               body: StreamBuilder<QuerySnapshot>(
-                stream: FirebaseFirestore.instance.collection('tournaments').snapshots(),
+                stream: _tournamentStream,
                 builder: (context, snapshot){
                   if (snapshot.hasError) return Center(child: Text("Error: ${snapshot.error}"));
                   if(snapshot.connectionState == ConnectionState.waiting) {
@@ -147,11 +156,7 @@ class _ExplorePageState extends State<ExplorePage> {
                     return title.contains(_searchQuery) || tournamentId == _searchQuery;
                   }).toList();
                       
-                  if(docs.isEmpty){
-                    return _buildEmptyState();
-                  }
-                  
-                  if(filteredDocs.isEmpty){
+                  if(docs.isEmpty || filteredDocs.isEmpty){
                     return _buildEmptyState();
                   }
                       
@@ -295,16 +300,22 @@ class _ExplorePageState extends State<ExplorePage> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: Colors.blueAccent.withOpacity(0.2),
-                                    borderRadius: BorderRadius.circular(6),
-                                    border: Border.all(color: Colors.blueAccent.withOpacity(0.5))
-                                  ),
-                                  child: Text("${data['sport']}", style: const TextStyle(color: Colors.blueAccent, fontSize: 11))
+                                Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: Colors.blueAccent.withOpacity(0.2),
+                                        borderRadius: BorderRadius.circular(6),
+                                        border: Border.all(color: Colors.blueAccent.withOpacity(0.5))
+                                      ),
+                                      child: Text("${data['sport']}", style: const TextStyle(color: Colors.blueAccent, fontSize: 11))
+                                    ),
+                                    const SizedBox(width: 8),
+                                    if((data['is_private']?? false)) Icon(Icons.lock_outline, color: Colors.grey, size: 20,),
+                                  ],
                                 ),
-                                SizedBox(height: 8),
+                                const SizedBox(height: 8),
                                 Row(
                                   children: [
                                     Expanded(child: Text(data['title'], style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize:context.isMobile?18: 24,))),
@@ -322,18 +333,176 @@ class _ExplorePageState extends State<ExplorePage> {
                     ],
                   ),
                 ),
-              onTap: (){
-                isLoggedIn?
-                Navigator.push(context, MaterialPageRoute(builder: (context) => TournamentDashboard(tournamentId: data['tournament_id'])),)
-                :ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                  content: Text("Please login into your account first.", style: TextStyle(color: Colors.white)),
-                  backgroundColor: Color(0xFF1E1E24),
-                ));
-              },
+                onTap: (){
+                  if(!isLoggedIn){
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                      content: Text("Please login into your account first.", style: TextStyle(color: Colors.white)),
+                      backgroundColor: Color(0xFF1E1E24),
+                    ));
+                    return;
+                  }
+                
+                  final userProvider = Provider.of<UserProvider>(context, listen: false);
+                  final List admins = data['admins'] ?? [];
+                  final bool amIAdmin = admins.contains(userProvider.uid);
+                  final bool isPrivate = data['is_private'] ?? false;
+
+                  if(isPrivate && !amIAdmin){
+                    _showEnterPasswordDialog(context, data['tournament_id'], data['password']);
+                  }
+                  else {
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => TournamentDashboard(tournamentId: data['tournament_id'])));
+                  }
+                },
             ),
           ),
         ),
       ),
+    );
+  }
+
+  void _showEnterPasswordDialog(BuildContext context, String tournamentId, String password) {
+    final TextEditingController _passVerifyController = TextEditingController();
+    
+    showDialog(
+      context: context,
+      builder: (confirmContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return Center(
+              child: Material(
+                color: Colors.transparent,
+                child: Container(
+                  constraints: BoxConstraints(maxWidth: 700),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1E1E24),
+                    borderRadius: BorderRadius.circular(1),
+                    border: Border.all(color: Theme.of(context).colorScheme.primary),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Container(
+                              height: 40,
+                              color: Theme.of(context).colorScheme.primary,
+                              child: Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 20),
+                                child: Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: Text(
+                                    "PRIVATE  TOURNAMENT",
+                                    textAlign: TextAlign.start,
+                                    style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 1.3),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          InkWell(
+                            onTap: () => Navigator.pop(confirmContext),
+                            child: Container(
+                              height: 40,
+                              width: 40,
+                              color: Colors.white,
+                              child: const Icon(Icons.close, size: 30, color: Color(0xFF1E1E24)),
+                            ),
+                          )
+                        ],
+                      ),
+            
+                      const SizedBox(height: 90),
+            
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 30),
+                        child: Row(
+                          spacing: 40,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Text("Enter password", style: TextStyle(color: Colors.grey, fontSize: 18)),
+                            Expanded(
+                              child: TextField(
+                                controller: _passVerifyController,
+                                obscureText: _obsecurePassword,
+                                decoration: InputDecoration(
+                                  hintText: "Tap to enter password",
+                                  suffixIcon: IconButton(
+                                    onPressed: () => setDialogState(() => _obsecurePassword = !_obsecurePassword),
+                                    icon: Icon(_obsecurePassword? Icons.visibility_off : Icons.visibility, color: Colors.grey),
+                                  ),
+                                  filled: true,
+                                  fillColor: const Color(0xFF1E1E24),
+                                  hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(5),
+                                    borderSide: const BorderSide(color: Colors.white10),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(5),
+                                    borderSide: const BorderSide(color: Color(0xFF6C63FF), width: 1),
+                                  ),
+                                ),
+                              ),
+                            )
+                          ],
+                        ),
+                      ),
+            
+                      const SizedBox(height: 90),
+            
+                      Row(
+                        spacing: 40,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          // Cancel Button
+                          ElevatedButton(
+                            onPressed: () => Navigator.pop(confirmContext),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.white,
+                              foregroundColor: Colors.blueGrey,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(2),
+                              ),
+                            ),
+                            child: Text("CANCEL", style: const TextStyle(color: Color(0xFF1E1E24), fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+                          ),
+                          
+                          ElevatedButton(
+                            onPressed: (){
+                              if(_passVerifyController.text == password){
+                                Navigator.pop(confirmContext);
+                                Navigator.push(context, MaterialPageRoute(builder: (context) => TournamentDashboard(tournamentId: tournamentId)));
+                              }
+                              else{
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text("Error: Password incorrect.", style: TextStyle(color: Colors.white)),backgroundColor: Color(0xFF1E1E24)),
+                                );
+                                Navigator.pop(confirmContext);
+                              }
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.amber,
+                              foregroundColor: Colors.blueGrey,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(2),
+                              ),
+                            ),
+                            child: Text("CONFIRM", style: const TextStyle(color: Color(0xFF1E1E24), fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 30),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }
+        );
+      },
     );
   }
 

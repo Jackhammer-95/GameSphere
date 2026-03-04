@@ -102,6 +102,7 @@ class _SignUpPageState extends State<SignUpPage> {
                 padding: context.isMobile? const EdgeInsets.symmetric(horizontal: 40): const EdgeInsets.symmetric(horizontal: 80),
                 child: Column(
                   children: [
+                    const SizedBox(height: 10),
                     Image.asset("Assets/images/icon_GameSphere.png", height: 50.0),
                     SizedBox(height: 20),
                     Text("Join GameSphere", style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white)),
@@ -157,7 +158,8 @@ class _SignUpPageState extends State<SignUpPage> {
                           "CREATE ACCOUNT", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)
                         ),
                       ),
-                    )
+                    ),
+                    const SizedBox(height: 10),
                   ],
                 ),
               ),

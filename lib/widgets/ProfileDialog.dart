@@ -161,7 +161,7 @@ void confirmSignOut(BuildContext context) {
                 
                 const Divider(color: Colors.white10, height: 1),
 
-                IntrinsicHeight( // Ensures the divider matches button height
+                IntrinsicHeight( // Ensures kore divider matches button height
                   child: Row(
                     children: [
                       // Cancel Button
@@ -186,7 +186,7 @@ void confirmSignOut(BuildContext context) {
                           onTap: () async {
                             await FirebaseAuth.instance.signOut();
                             if (context.mounted) {
-                              Navigator.of(context).popUntil((route) => route.isFirst);      // Close profile dialog
+                              Navigator.of(context).popUntil((route) => route.isFirst);
                             }
                           },
                           child: Container(

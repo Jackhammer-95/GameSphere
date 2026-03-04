@@ -17,7 +17,10 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
   late TextEditingController _titleController;
   late TextEditingController _hostController;
   late TextEditingController _descController;
+  late TextEditingController _passwordController;
   late TextEditingController _customSportController;
+  bool _isPasswordNeeded = false;
+  bool _obsecurePassword = true;
   
   String _selectedSport = 'Football';
   int _selectedFormatIndex = 0; // 0: Group, 1: Mixed, 2: Knockout
@@ -46,6 +49,7 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
     _titleController = TextEditingController();
     _hostController = TextEditingController(text: "${user.firstName} ${user.lastName}");
     _descController = TextEditingController();
+    _passwordController = TextEditingController();
     _customSportController = TextEditingController();
   }
 
@@ -91,6 +95,10 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
                       _buildTextField("Host Name*", _hostController, "Organizer Name"),
                       const SizedBox(height: 16),
                       _buildTextField("Description", _descController, "Rules, prizes, or general info...", maxLines: 4),
+                      const SizedBox(height: 25),
+                      _buildPrivacyToggle(),
+                      if(_isPasswordNeeded) const SizedBox(height: 16),
+                      if(_isPasswordNeeded) _buildTextField("Set Password*", _passwordController, "Enter access password", suffix: true),
                       
                       const SizedBox(height: 40),
                       _buildSectionTitle("CHOOSE SPORT"),
@@ -129,7 +137,7 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
     );
   }
 
-  Widget _buildTextField(String label, TextEditingController controller, String hint, {int maxLines = 1}) {
+  Widget _buildTextField(String label, TextEditingController controller, String hint, {int maxLines = 1, bool suffix = false}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -148,17 +156,79 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
             return null;
           },
           maxLines: maxLines,
+          obscureText: suffix? _obsecurePassword: false,
           style: const TextStyle(color: Colors.white),
           decoration: InputDecoration(
             hintText: hint,
             hintStyle: TextStyle(color: Colors.white.withOpacity(0.2)),
             filled: true,
             fillColor: const Color(0xFF1E1E24),
+            suffixIcon: (suffix)? IconButton(
+              onPressed:() => setState(() {
+                _obsecurePassword = !_obsecurePassword;
+              }),
+              icon: Icon(_obsecurePassword? Icons.visibility_off: Icons.visibility, color: Colors.grey),
+            ): null,
             enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.white10)),
             focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Color(0xFF6C63FF), width: 2)),
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildPrivacyToggle(){
+    return Material(
+      color: Colors.transparent,
+      child: Container(
+        height: 40,
+        width: 200,
+        decoration: BoxDecoration(
+          color: const Color(0xFF1E1E24),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.white10),
+        ),
+        child: IntrinsicHeight( // Ensures kore divider matches button height
+          child: Row(
+            children: [
+              Expanded(
+                child: InkWell(
+                  borderRadius: const BorderRadius.horizontal(left: Radius.circular(12)),
+                  onTap: () => setState(() {_isPasswordNeeded = false;}),
+                  child: Container(
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      borderRadius: const BorderRadius.horizontal(left: Radius.circular(12)),
+                      color: _isPasswordNeeded? Colors.transparent : Theme.of(context).colorScheme.primary,
+                    ),
+                    child: const Text("Public", style: TextStyle(color: Colors.white, fontSize: 16.0, fontWeight: FontWeight.bold)),
+                  ),
+                ),
+              ),
+              
+              const VerticalDivider(color: Colors.white10, width: 1),
+        
+              Expanded(
+                child: InkWell(
+                  borderRadius: const BorderRadius.horizontal(right: Radius.circular(12)),
+                  onTap: () => setState(() {_isPasswordNeeded = true;}),
+                  child: Container(
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      borderRadius: const BorderRadius.horizontal(right: Radius.circular(12)),
+                      color: _isPasswordNeeded? Theme.of(context).colorScheme.primary : Colors.transparent,
+                    ),
+                    child: const Text(
+                      "Private",
+                      style: TextStyle(color: Colors.white, fontSize: 16.0, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -330,6 +400,7 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
                   description: _descController.text.trim(),
                   sport: _selectedSport == 'Others' ? _customSportController.text.trim() : _selectedSport,
                   format: _selectedFormatIndex,
+                  password: _isPasswordNeeded? _passwordController.text.trim():null,
                 ),
               ),
             );

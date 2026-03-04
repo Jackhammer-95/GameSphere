@@ -357,7 +357,7 @@ class ProfileDashboard extends StatelessWidget {
   }
 
   Widget _buildTrophyBox(BuildContext context, int num, String photo) {
-    double boxSize = context.screenWidth; 
+    double boxSize = context.boxWidth; 
 
     return Stack(
       children: [

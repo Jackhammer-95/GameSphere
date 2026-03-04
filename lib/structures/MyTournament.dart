@@ -156,14 +156,20 @@ class MyTournament extends StatelessWidget {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: Colors.blueAccent.withOpacity(0.2),
-                                    borderRadius: BorderRadius.circular(6),
-                                    border: Border.all(color: Colors.blueAccent.withOpacity(0.5))
-                                  ),
-                                  child: Text("${data['sport']}", style: const TextStyle(color: Colors.blueAccent, fontSize: 11))
+                                Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: Colors.blueAccent.withOpacity(0.2),
+                                        borderRadius: BorderRadius.circular(6),
+                                        border: Border.all(color: Colors.blueAccent.withOpacity(0.5))
+                                      ),
+                                      child: Text("${data['sport']}", style: const TextStyle(color: Colors.blueAccent, fontSize: 11))
+                                    ),
+                                    const SizedBox(width: 8),
+                                    if((data['is_private']?? false)) Icon(Icons.lock_outline, color: Colors.grey, size: 20,),
+                                  ],
                                 ),
                                 SizedBox(height: 8),
                                 Row(

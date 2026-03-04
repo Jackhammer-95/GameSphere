@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:gamesphere/TheProvider.dart';
 import 'package:gamesphere/structures/HomeTournmtPage.dart';
+import 'package:provider/provider.dart';
 
 class TournamentSettingsPage extends StatefulWidget {
   final String title;
@@ -11,6 +11,7 @@ class TournamentSettingsPage extends StatefulWidget {
   final String description;
   final String sport;
   final int format;
+  final String? password;
 
   const TournamentSettingsPage({
     super.key,
@@ -19,6 +20,7 @@ class TournamentSettingsPage extends StatefulWidget {
     required this.description,
     required this.sport,
     required this.format,
+    required this.password,
   });
 
   @override
@@ -38,12 +40,13 @@ class _TournamentSettingsPageState extends State<TournamentSettingsPage>{
 
   Future<void> _registerTournament() async{
     try{
-      final String? userUid = FirebaseAuth.instance.currentUser?.uid;
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
 
-      if(userUid == null){
+      if(userProvider.uid.isEmpty){
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("User not authenticated.", style: TextStyle(color: Colors.white)),backgroundColor: Color(0xFF1E1E24)),
         );
+        return;
       }
 
       setState(() => _isLoading = true);
@@ -65,8 +68,10 @@ class _TournamentSettingsPageState extends State<TournamentSettingsPage>{
         'third_place_match': _thirdPlaceMatch,
         'two_legged_knockout': _twolegged,
         'createdAt': FieldValue.serverTimestamp(),
-        'creator_id': userUid,
-        'admins':[userUid],
+        'creator_id': userProvider.uid,
+        'admins':[userProvider.uid],
+        'is_private': widget.password != null && widget.password!.isNotEmpty,
+        'password': widget.password ?? "",
       };
 
       await docref.set(tournamentData);
@@ -83,10 +88,10 @@ class _TournamentSettingsPageState extends State<TournamentSettingsPage>{
       }
     }
     catch (e){
+      if(mounted) setState(() => _isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Failed to create tournament.: $e", style: TextStyle(color: Colors.white)),backgroundColor: Color(0xFF1E1E24)),
       );
-      if(mounted) setState(() => _isLoading = false);
     }
   }
 
