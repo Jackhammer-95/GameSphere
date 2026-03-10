@@ -193,11 +193,12 @@ class ProfileDashboard extends StatelessWidget {
                                           ),
                                           child: CircleAvatar(
                                             radius: 60,
-                                            backgroundColor: Theme.of(context).colorScheme.primary,
-                                            child: Text(
+                                            backgroundColor: userProv.dpUrl == null? Theme.of(context).colorScheme.primary :const Color(0xFF1E1E24),
+                                            backgroundImage: (userProv.dpUrl == null)? null : NetworkImage(userProv.dpUrl!),
+                                            child: userProv.dpUrl == null? Text(
                                               userProv.initial,
                                               style: const TextStyle(fontSize: 45, fontWeight: FontWeight.bold, color: Colors.white),
-                                            ),
+                                            ):null,
                                           ),
                                         ),
                                       ),

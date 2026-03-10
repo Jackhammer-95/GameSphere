@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:country_picker/country_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:gamesphere/TheProvider.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:cloudinary_public/cloudinary_public.dart';
+import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'dart:typed_data';
 
 class EditProfilePage extends StatefulWidget {
   const EditProfilePage({super.key});
@@ -21,6 +26,12 @@ class _EditProfilePageState extends State<EditProfilePage> {
   String selectedFlag = "🌍";
   String selectedDob = "(Select Date of Birth)";
   int age = 0;
+  String? _dpUrl;
+  File? _pickedImage;
+  final ImagePicker _picker = ImagePicker();
+  final cloudinary = CloudinaryPublic('dt2f6qqvk', 'GameSphere', cache: false);
+  Uint8List? _webImage;
+  bool _isLoading = false;
 
   @override
   void initState(){
@@ -36,6 +47,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
     selectedFlag = user.flag;
     selectedDob = user.dob;
     age = user.age;
+    _dpUrl = user.dpUrl;
   }
 
   @override
@@ -266,7 +278,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
                                                   SizedBox(
                                                     height: 40,
                                                     width: 90,
-                                                    child: ElevatedButton(
+                                                    child: _isLoading? Center(child: const CircularProgressIndicator())
+                                                    :ElevatedButton(
                                                       onPressed: () async {
                                                         if(_fnameController.text.trim().isEmpty){
                                                           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -276,19 +289,55 @@ class _EditProfilePageState extends State<EditProfilePage> {
                                                           ));
                                                           return;
                                                         }
-                                                        bool success = await userProv.updateProfile(
-                                                          fname: _fnameController.text,
-                                                          lname: _lnameController.text,
-                                                          bio: _bioController.text,
-                                                          id: _studentIdController.text,
-                                                          inst: _instController.text,
-                                                          phone: _phoneController.text,
-                                                          country: selectedCountry,
-                                                          flag: selectedFlag,
-                                                          dob: selectedDob,
-                                                          age: age,
-                                                        );
-                                                        if(success && mounted) Navigator.pop(context);
+
+                                                        setState(() => _isLoading = true);
+
+                                                        try{
+                                                          String? finalDpUrl = _dpUrl;
+
+                                                          if(_pickedImage != null){
+                                                            CloudinaryResponse response;
+                                                            if(kIsWeb){
+                                                              response = await cloudinary.uploadFile(
+                                                                CloudinaryFile.fromByteData(
+                                                                  ByteData.view(_webImage!.buffer),
+                                                                  identifier: 'logo_${userProv.uid}',
+                                                                  resourceType: CloudinaryResourceType.Image
+                                                                )
+                                                              );
+                                                            }
+                                                            else{
+                                                              response = await cloudinary.uploadFile(
+                                                                CloudinaryFile.fromFile(_pickedImage!.path, resourceType: CloudinaryResourceType.Image),
+                                                              );
+                                                            }
+
+                                                            finalDpUrl = response.secureUrl;
+                                                          }
+                                                          
+                                                          bool success = await userProv.updateProfile(
+                                                            fname: _fnameController.text,
+                                                            lname: _lnameController.text,
+                                                            bio: _bioController.text,
+                                                            id: _studentIdController.text,
+                                                            inst: _instController.text,
+                                                            phone: _phoneController.text,
+                                                            country: selectedCountry,
+                                                            flag: selectedFlag,
+                                                            dob: selectedDob,
+                                                            age: age,
+                                                            dpUrl: finalDpUrl
+                                                          );
+                                                          if(success && mounted) Navigator.pop(context);
+                                                        }
+                                                        catch(e){
+                                                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                                                            content: Text("Update failed: $e",
+                                                            style: TextStyle(color: Colors.white)),
+                                                            backgroundColor: Color(0xFF1E1E24),
+                                                          ));
+                                                        }
+                                                        finally{if(mounted) setState(() => _isLoading = false);}
                                                       },
                                                       style: ElevatedButton.styleFrom(
                                                         backgroundColor: Theme.of(context).colorScheme.primary,
@@ -297,7 +346,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                                                           borderRadius: BorderRadius.circular(8),
                                                         ),
                                                       ),
-                                                      child: Text("Save", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                                                      child:Text("Save", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                                                     ),
                                                   ),
                                                 ],
@@ -315,14 +364,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                                           shape: BoxShape.circle,
                                           border: Border.all(color: Colors.black, width: 5),
                                         ),
-                                        child: CircleAvatar(
-                                          radius: 60,
-                                          backgroundColor: Theme.of(context).colorScheme.primary,
-                                          child: Text(
-                                            userProv.initial,
-                                            style: const TextStyle(fontSize: 45, fontWeight: FontWeight.bold, color: Colors.white),
-                                          ),
-                                        ),
+                                        child: _buildLogoPicker(userProv.initial),
                                       ),
                                     ),
                                   ]
@@ -358,6 +400,70 @@ class _EditProfilePageState extends State<EditProfilePage> {
         ],
       )
     );
+  }
+
+  Widget _buildLogoPicker(String letter){
+    ImageProvider? displayImage;
+
+    if(kIsWeb && _webImage != null){
+      displayImage = MemoryImage(_webImage!);
+    }
+    else if(!kIsWeb && _pickedImage != null){
+      displayImage = FileImage(_pickedImage!);
+    }
+    else if(_dpUrl != null){
+      displayImage = NetworkImage(_dpUrl!);
+    }
+    return Stack(
+      children: [
+        CircleAvatar(
+          radius: 60,
+          backgroundColor: displayImage == null? Theme.of(context).colorScheme.primary :const Color(0xFF1E1E24),
+          backgroundImage: displayImage,
+          child: displayImage == null? Text(
+              letter,
+              style: const TextStyle(fontSize: 45, fontWeight: FontWeight.bold, color: Colors.white),
+            ): null,
+        ),
+        Positioned(
+          bottom: 0,
+          right: 0,
+          child: InkWell(
+            onTap: _pickImage,
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primary,
+                shape: BoxShape.circle,
+                border: Border.all(color: const Color(0xFF0E0E12), width: 2),
+              ),
+              child: const Icon(Icons.camera_alt, color: Colors.white, size: 20),
+            ),
+          ),
+        )
+      ],
+    );
+  }
+
+  Future<void> _pickImage() async{
+    final XFile? image = await _picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 70
+    );
+    if(image != null){
+      if(kIsWeb){
+        final bytes = await image.readAsBytes();
+        setState(() {
+          _webImage = bytes;
+          _pickedImage = File(image.path);
+        });
+      }
+      else{
+        setState(() {
+          _pickedImage = File(image.path);
+        });
+      }
+    }
   }
 }
 

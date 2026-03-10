@@ -17,6 +17,13 @@ class _GameSphereLoginState extends State<GameSphereLogin> {
   bool _isLoading = false;
 
   @override
+  void dispose(){
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
 

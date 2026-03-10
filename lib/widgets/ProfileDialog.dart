@@ -1,11 +1,57 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:gamesphere/Login_actions/LoginPage.dart';
 import 'package:gamesphere/TheProvider.dart';
 import 'package:gamesphere/screens/ProfileDashboard.dart';
 import 'package:provider/provider.dart';
 
+Widget buildProfileOrLogin(BuildContext context, bool loggedIn, User? user){
+  return Padding(
+    padding: context.isMobile? const EdgeInsets.only(right: 12.0) : const EdgeInsets.only(right: 24.0),
+    child: loggedIn ? Consumer<UserProvider>(
+      builder: (context, userProv, child) {
+        return IconButton(
+          icon: CircleAvatar(
+            backgroundColor: Colors.white30,
+            radius: 18,
+            child: CircleAvatar(
+              backgroundColor: const Color.fromARGB(255, 57, 92, 109),
+              radius: 17,
+              backgroundImage: userProv.dpUrl == null? null : NetworkImage(userProv.dpUrl!),
+              child: userProv.isLoading
+                ? const SizedBox(
+                  width: 12.0,
+                  height: 12.0,
+                  child: CircularProgressIndicator(strokeWidth: 2.0, color: Colors.white,),
+                )
+                : userProv.dpUrl == null? Text(
+                  userProv.initial,
+                  style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                ):null,
+            ),
+          ),
+          onPressed: () => showProfileDialog(context, user!, userProv.dpUrl)
+        );
+      }
+    )
+    : OutlinedButton.icon(
+        onPressed: () {
+          Navigator.push(context, MaterialPageRoute(builder: (context) => const GameSphereLogin()));
+        },
+        style: OutlinedButton.styleFrom(
+          foregroundColor: Colors.white,
+          side: const BorderSide(color: Color.fromARGB(77, 255, 255, 255)),
+          padding: context.isMobile
+              ? const EdgeInsets.symmetric(horizontal: 18, vertical: 9)
+              : const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        ),
+        icon: context.isMobile ? const Icon(Icons.login, size: 14) : const Icon(Icons.login, size: 18),
+        label: context.isMobile? const Text("LOGIN", style: TextStyle(fontSize: 12.0)) : const Text("LOGIN"),
+      ),
+  );
+}
 
-void showProfileDialog(BuildContext context, User user) {
+void showProfileDialog(BuildContext context, User user, String? dpImage) {
   showDialog(
     context: context,
     builder: (context) {
@@ -53,10 +99,11 @@ void showProfileDialog(BuildContext context, User user) {
                                   child: CircleAvatar(
                                     radius: 36,
                                     backgroundColor: const Color.fromARGB(255, 57, 92, 109),
-                                    child: Text(
+                                    backgroundImage: dpImage == null? null : NetworkImage(dpImage),
+                                    child: dpImage == null? Text(
                                       userprov.initial,
                                       style: const TextStyle(fontSize: 40, fontWeight: FontWeight.bold, color: Colors.white),
-                                    ),
+                                    ):null,
                                   ),
                                 ),
                                 const SizedBox(height: 12),

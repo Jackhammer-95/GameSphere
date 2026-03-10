@@ -24,6 +24,7 @@ class UserProvider extends ChangeNotifier {
   String? _email;
   String? _dob;
   int? _age;
+  String? _dpUrl;
   Timestamp? _createdAt;
   bool _isLoading = false;
 
@@ -40,6 +41,7 @@ class UserProvider extends ChangeNotifier {
   String get flag => _flag ?? "🌍";
   String get dob => _dob ?? "(Select Date of Birth)";
   int get age => _age ?? 0;
+  String? get dpUrl => _dpUrl;
   bool get isLoading => _isLoading;
   
   String get joinedDate{
@@ -95,6 +97,7 @@ class UserProvider extends ChangeNotifier {
         _flag = data['flag'];
         _dob = data['dob'];
         _age = data['age'];
+        _dpUrl = data['logo_url'];
         
         print("Provider successfully fetched: $_firstName");
       } else {
@@ -111,7 +114,7 @@ class UserProvider extends ChangeNotifier {
   // editing updates
   Future<bool> updateProfile({
     required String fname, required String lname, required String bio, required String id, required String inst, required String phone, required String country,
-    required String flag, required String dob, required int age,
+    required String flag, required String dob, required int age, required String? dpUrl,
   })
   async {
     String uid = FirebaseAuth.instance.currentUser!.uid;
@@ -127,10 +130,11 @@ class UserProvider extends ChangeNotifier {
         'flag' : flag,
         'dob' : dob,
         'age' : age,
+        'logo_url': dpUrl,
       });
 
-      //update local state so UI updates without a refresh
-      _firstName = fname; _lastName = lname; _bio = bio; _studentId = id; _institution = inst; _phone = phone; _country = country; _flag = flag; _dob = dob; _age = age;
+      //update local state so UI updates without refresh
+      _firstName = fname; _lastName = lname; _bio = bio; _studentId = id; _institution = inst; _phone = phone; _country = country; _flag = flag; _dob = dob; _age = age; _dpUrl = dpUrl;
       notifyListeners();
       return true;
     } catch(e){

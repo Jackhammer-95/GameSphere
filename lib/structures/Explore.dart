@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:gamesphere/Login_actions/LoginPage.dart';
 import 'package:gamesphere/structures/HomeTournmtPage.dart';
 import 'package:intl/intl.dart';
 import 'package:gamesphere/TheProvider.dart';
@@ -16,9 +15,14 @@ class ExplorePage extends StatefulWidget {
 }
 
 class _ExplorePageState extends State<ExplorePage> {
+  final ScrollController _scrollController = ScrollController();
+  List<DocumentSnapshot> _tournaments = [];
+  bool _isLoading = false;
+  bool _hasMore = true;
+  DocumentSnapshot? _lastDocument;
+  final int _documentLimit = 10;
   String _searchQuery = "";
   final TextEditingController _searchController = TextEditingController();
-  Stream<QuerySnapshot>? _tournamentStream;
   bool _obsecurePassword = true;
 
   void _handleSearch(){
@@ -31,7 +35,63 @@ class _ExplorePageState extends State<ExplorePage> {
   @override
   void initState(){
     super.initState();
-    _tournamentStream = FirebaseFirestore.instance.collection('tournaments').snapshots();
+    _fetchTournaments();
+
+    _scrollController.addListener((){
+      double maxScroll = _scrollController.position.maxScrollExtent;
+      double currentScroll = _scrollController.position.pixels;
+      double delta = 200.0;
+
+      if(maxScroll - currentScroll <= delta){
+        _fetchTournaments();
+      }
+    });
+  }
+
+  @override
+  void dispose(){
+    _scrollController.dispose();
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _fetchTournaments() async {
+    if(_isLoading || !_hasMore) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      Query query = FirebaseFirestore.instance.collection('tournaments').orderBy('createdAt', descending: true).limit(_documentLimit);
+
+      if(_lastDocument != null){
+        query = query.startAfterDocument(_lastDocument!);
+      }
+
+      final querySnapshot = await query.get();
+
+      if(querySnapshot.docs.length < _documentLimit){
+        _hasMore = false;
+      }
+
+      if(querySnapshot.docs.isNotEmpty){
+        _lastDocument = querySnapshot.docs.last;
+        setState(() => _tournaments.addAll(querySnapshot.docs));
+      }
+    } catch (e){
+      debugPrint("Error fetching tournaments: $e");
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  // onRefresh here
+  Future<void> _onRefresh() async {
+    setState(() {
+      _tournaments.clear();
+      _lastDocument = null;
+      _hasMore = true;
+    });
+    await _fetchTournaments();
   }
 
   @override
@@ -42,6 +102,15 @@ class _ExplorePageState extends State<ExplorePage> {
       builder: (context, snapshot) {
         final bool loggedIn = snapshot.hasData && (snapshot.data != null);
         final User? user = snapshot.data;
+
+        final filteredList = _tournaments.where((doc){
+          final data = doc.data() as Map<String, dynamic>;
+          final String title = (data['title'] ?? "").toString().toLowerCase();
+          final String tournamentid = (data['tournament_id'] ?? "").toString().toLowerCase();
+
+          if(_searchQuery.isEmpty) return true;
+          return title.contains(_searchQuery) || tournamentid == _searchQuery;
+        }).toList();
 
         return Stack(
           children: [
@@ -58,8 +127,8 @@ class _ExplorePageState extends State<ExplorePage> {
                 surfaceTintColor: Colors.transparent,
                 elevation: 0,
                 centerTitle: false,
-                title: Padding(
-                  padding: const EdgeInsets.only(left: 8.0),
+                title: const Padding(
+                  padding: EdgeInsets.only(left: 8.0),
                   child: Text("EXPLORE EVENTS", style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900)),
                 ),
                 actions: [
@@ -81,7 +150,7 @@ class _ExplorePageState extends State<ExplorePage> {
                                 borderRadius: BorderRadius.circular(2),
                                 color: Colors.white
                               ),
-                              child: Icon(Icons.search, color: const Color(0xFF1E1E24)),
+                              child: const Icon(Icons.search, color: Color(0xFF1E1E24)),
                             ),
                           ),
                           const SizedBox(width: 10)
@@ -89,127 +158,78 @@ class _ExplorePageState extends State<ExplorePage> {
                       )
                     ),
                   ),
-                  Padding(
-                    padding: context.isMobile? const EdgeInsets.only(right: 12.0) : const EdgeInsets.only(right: 24.0),
-                    child: loggedIn ? Consumer<UserProvider>(
-                      builder: (context, userProv, child) {
-                        return IconButton(
-                          icon: CircleAvatar(
-                            backgroundColor: Colors.white30,
-                            radius: 18,
-                            child: CircleAvatar(
-                              backgroundColor: const Color.fromARGB(255, 57, 92, 109),
-                              radius: 17,
-                              child: userProv.isLoading
-                                ? const SizedBox(
-                                  width: 12.0,
-                                  height: 12.0,
-                                  child: CircularProgressIndicator(strokeWidth: 2.0, color: Colors.white,),
-                                )
-                                : Text(
-                                  userProv.initial,
-                                  style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-                                ),
-                            ),
-                          ),
-                          onPressed: (){
-                            showProfileDialog(context, user!);
-                          },
-                        );
-                      }
-                    )
-                    : OutlinedButton.icon(
-                        onPressed: () {
-                          Navigator.push(context, MaterialPageRoute(builder: (context) => const GameSphereLogin()),);
-                        },
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.white,
-                          side: const BorderSide(color: Color.fromARGB(77, 255, 255, 255)),
-                          padding: context.isMobile
-                              ? const EdgeInsets.symmetric(horizontal: 18, vertical: 9)
-                              : const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                        ),
-                        icon: context.isMobile ? const Icon(Icons.login, size: 14) : const Icon(Icons.login, size: 18),
-                        label: context.isMobile? const Text("LOGIN", style: TextStyle(fontSize: 12.0)) : const Text("LOGIN"),
-                      ),
-                  )
+                  buildProfileOrLogin(context, loggedIn, user)
                 ],
               ),
-              body: StreamBuilder<QuerySnapshot>(
-                stream: _tournamentStream,
-                builder: (context, snapshot){
-                  if (snapshot.hasError) return Center(child: Text("Error: ${snapshot.error}"));
-                  if(snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator(color: Colors.blueAccent,));
-                  }
-                      
-                  final docs = snapshot.data!.docs;
-                  
-                  final filteredDocs = docs.where((doc){
-                    final data = doc.data() as Map<String, dynamic>;
-
-                    final String title = (data['title']?? "").toString().toLowerCase();
-                    final String tournamentId = (data['tournament_id'] ?? "").toString().toLowerCase();
-
-                    if(_searchQuery.isEmpty) return true;
-
-                    return title.contains(_searchQuery) || tournamentId == _searchQuery;
-                  }).toList();
-                      
-                  if(docs.isEmpty || filteredDocs.isEmpty){
-                    return _buildEmptyState();
-                  }
-                      
-                  return ListView.builder(
-                    itemCount: filteredDocs.length,
-                    padding: const EdgeInsets.all(16),
-                    physics: const BouncingScrollPhysics(),
-                    itemBuilder: (context, index){
-                      var data = filteredDocs[index].data() as Map<String, dynamic>;
+              body: RefreshIndicator(
+                onRefresh: _onRefresh,
+                color: Colors.blueAccent,
+                child: (filteredList.isEmpty && !_isLoading)? _buildEmptyState()
+                :ListView.builder(
+                  controller: _scrollController,
+                  itemCount: filteredList.length + (_hasMore? 1 : 0),
+                  padding: const EdgeInsets.all(16),
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  itemBuilder: (context, index){
+                    if (index < filteredList.length){
+                      var data = filteredList[index].data() as Map<String, dynamic>;
                       return _buildTournamentCard(context, data, loggedIn);
-                    },
-                  );
-                },
-              ),
-              bottomNavigationBar: (context.isMobile)? Transform.translate(
-                offset: Offset(0, -MediaQuery.of(context).viewInsets.bottom),
-                child: BottomAppBar(
-                  color: Colors.transparent,
-                  elevation: 0,
-                  height: 85,
-                  padding: EdgeInsets.fromLTRB(10, 15, 10, 20),
-                  child: Align(
-                    alignment: Alignment.topLeft,
-                    child: SizedBox(
-                      width: 300,
-                      height: 35,
-                      child: Row(
-                        children: [
-                          Expanded(child: _buildSearchField()),
-                          InkWell(
-                            borderRadius: BorderRadius.circular(2),
-                            onTap: _handleSearch,
-                            child: Container(
-                              width: 35,
-                              height: double.infinity,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(2),
-                                color: Colors.white
-                              ),
-                              child: Icon(Icons.search, color: const Color(0xFF1E1E24)),
-                            ),
-                          ),
-                          const SizedBox(width: 10)
-                        ],
-                      )
-                    ),
-                  ),
+                    }
+                    else{
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 32.0),
+                        child: Center(
+                          child: _hasMore? const CircularProgressIndicator(color: Colors.blueAccent)
+                          : const Text("No more tournaments", style: TextStyle(color: Colors.white24)),
+                        ),
+                      );
+                    }
+                  },
                 ),
-              ): null,
+              ),
+              bottomNavigationBar: (context.isMobile)? _buildMobileSearchBar(): null,
             ),
           ],
         );
       }
+    );
+  }
+
+  Widget _buildMobileSearchBar(){
+    return Transform.translate(
+      offset: Offset(0, -MediaQuery.of(context).viewInsets.bottom),
+      child: BottomAppBar(
+        color: Colors.transparent,
+        elevation: 0,
+        height: 85,
+        padding: EdgeInsets.fromLTRB(10, 15, 10, 20),
+        child: Align(
+          alignment: Alignment.topLeft,
+          child: SizedBox(
+            width: 300,
+            height: 35,
+            child: Row(
+              children: [
+                Expanded(child: _buildSearchField()),
+                InkWell(
+                  borderRadius: BorderRadius.circular(2),
+                  onTap: _handleSearch,
+                  child: Container(
+                    width: 35,
+                    height: double.infinity,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(2),
+                      color: Colors.white
+                    ),
+                    child: Icon(Icons.search, color: const Color(0xFF1E1E24)),
+                  ),
+                ),
+                const SizedBox(width: 10)
+              ],
+            )
+          ),
+        ),
+      ),
     );
   }
 
@@ -289,13 +309,28 @@ class _ExplorePageState extends State<ExplorePage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
+                        spacing: 5,
                         children: [
                           SizedBox(
                             height:context.isMobile? 60: 80,
                             width:context.isMobile? 60: 80,
-                            child: Center(child: Icon(Icons.emoji_events_outlined, color: Colors.amber, size:context.isMobile? 55: 65,)),
+                            child:(data['logo_url'] != null && data['logo_url'].toString().isNotEmpty)
+                            ? Image.network(
+                              data['logo_url'],
+                              fit: BoxFit.contain,
+                              loadingBuilder: (context, child, loadingProgress){
+                                if(loadingProgress == null) return child;
+                                return Center(
+                                  child: CircularProgressIndicator(
+                                    value: loadingProgress.expectedTotalBytes != null
+                                    ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!: null,
+                                    strokeWidth: 2,
+                                  ),
+                                );
+                              },
+                            )
+                            :Center(child: Icon(Icons.emoji_events_outlined, color: Colors.amber, size:context.isMobile? 55: 65,)),
                           ),
-                          const SizedBox(width: 5),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -373,7 +408,7 @@ class _ExplorePageState extends State<ExplorePage> {
               child: Material(
                 color: Colors.transparent,
                 child: Container(
-                  constraints: BoxConstraints(maxWidth: 700),
+                  constraints: BoxConstraints(maxWidth: 650),
                   decoration: BoxDecoration(
                     color: const Color(0xFF1E1E24),
                     borderRadius: BorderRadius.circular(1),
@@ -413,15 +448,15 @@ class _ExplorePageState extends State<ExplorePage> {
                         ],
                       ),
             
-                      const SizedBox(height: 90),
+                      SizedBox(height: context.isMobile? 60 : 90),
             
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 30),
+                        padding: EdgeInsets.symmetric(horizontal: context.isMobile? 20 : 30),
                         child: Row(
-                          spacing: 40,
+                          spacing: context.isMobile? 25 : 40,
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Text("Enter password", style: TextStyle(color: Colors.grey, fontSize: 18)),
+                            Text("Enter password", style: TextStyle(color: Colors.grey, fontSize: context.isMobile? 15 : 18)),
                             Expanded(
                               child: TextField(
                                 controller: _passVerifyController,
@@ -450,7 +485,7 @@ class _ExplorePageState extends State<ExplorePage> {
                         ),
                       ),
             
-                      const SizedBox(height: 90),
+                      SizedBox(height: context.isMobile? 60 : 90),
             
                       Row(
                         spacing: 40,
@@ -516,11 +551,6 @@ class _ExplorePageState extends State<ExplorePage> {
           const Text(
             "NO TOURNAMENTS FOUND",
             style: TextStyle(color: Colors.white30, fontWeight: FontWeight.bold, letterSpacing: 1.5),
-          ),
-          const SizedBox(height: 10),
-          const Text(
-            "Start your journey by creating one.",
-            style: TextStyle(color: Colors.white24),
           ),
         ],
       ),

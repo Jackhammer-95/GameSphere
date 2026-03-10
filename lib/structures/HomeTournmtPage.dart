@@ -8,7 +8,6 @@ import 'package:gamesphere/TabsTournament/pointsTableTab.dart';
 import 'package:gamesphere/TabsTournament/InfoTab.dart';
 import 'package:gamesphere/TheProvider.dart';
 import 'package:gamesphere/widgets/ProfileDialog.dart';
-import 'package:provider/provider.dart';
 
 class TournamentDashboard extends StatefulWidget {
   final String tournamentId;
@@ -85,36 +84,7 @@ class _TournamentDashboardState extends State<TournamentDashboard>{
             onPressed: () => Navigator.pop(context),
           ),
           actions: [
-            Padding(
-              padding: context.isMobile? const EdgeInsets.only(right: 12.0) : const EdgeInsets.only(right: 24.0),
-              child: Consumer<UserProvider>(
-                builder: (context, userProv, child) {
-                  return IconButton(
-                    icon: CircleAvatar(
-                      backgroundColor: Colors.white30,
-                      radius: 18,
-                      child: CircleAvatar(
-                        backgroundColor: const Color.fromARGB(255, 57, 92, 109),
-                        radius: 17,
-                        child: userProv.isLoading
-                          ? const SizedBox(
-                            width: 12.0,
-                            height: 12.0,
-                            child: CircularProgressIndicator(strokeWidth: 2.0, color: Colors.white,),
-                          )
-                          : Text(
-                            userProv.initial,
-                            style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-                          ),
-                      ),
-                    ),
-                    onPressed: (){
-                      showProfileDialog(context, user!);
-                    },
-                  );
-                }
-              )
-            )
+            buildProfileOrLogin(context, true, user)
           ],
           flexibleSpace: FlexibleSpaceBar(
             centerTitle: true,
@@ -137,20 +107,6 @@ class _TournamentDashboardState extends State<TournamentDashboard>{
             background: Stack(
               fit: StackFit.expand,
               children: [
-                Positioned(
-                  top: context.isMobile? 30: 5,
-                  right: 0,
-                  left: 0,
-                  child: Align(
-                    alignment:Alignment.topCenter,
-                    child: Icon(Icons.emoji_events_outlined, size: 100, color: Colors.white.withOpacity(0.1)),
-                  ),
-                ),
-                if(!context.isMobile) Positioned(
-                  left: -50,
-                  top: -20,
-                  child: Icon(Icons.emoji_events, size: 200, color: Colors.white.withOpacity(0.08)),
-                ),
                 Container(
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
@@ -162,6 +118,39 @@ class _TournamentDashboardState extends State<TournamentDashboard>{
                       ],
                     ),
                   ),
+                ),
+                Positioned(
+                  top: context.isMobile? 30: 5,
+                  right: 0,
+                  left: 0,
+                  child: Align(
+                    alignment:Alignment.topCenter,
+                    child:(data['logo_url'] != null && data['logo_url'].toString().isNotEmpty)
+                    ? SizedBox(
+                      height: 90,
+                      width: 150,
+                      child: Image.network(
+                        data['logo_url'],
+                        fit: BoxFit.contain,
+                        loadingBuilder: (context, child, loadingProgress){
+                          if(loadingProgress == null) return child;
+                          return Center(
+                            child: CircularProgressIndicator(
+                              value: loadingProgress.expectedTotalBytes != null
+                              ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!: null,
+                              strokeWidth: 2,
+                            ),
+                          );
+                        },
+                      ),
+                    )
+                    :Icon(Icons.emoji_events_outlined, size: 100, color: Colors.white.withOpacity(0.1)),
+                  ),
+                ),
+                if(!context.isMobile) Positioned(
+                  left: -50,
+                  top: -20,
+                  child: Icon(Icons.emoji_events, size: 200, color: Colors.white.withOpacity(0.08)),
                 ),
               ],
             ),

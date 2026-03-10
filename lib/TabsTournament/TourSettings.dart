@@ -4,6 +4,12 @@ import 'package:material_symbols_icons/symbols.dart';
 import 'package:gamesphere/widgets/DeleteTournament.dart';
 import 'package:gamesphere/TabsTournament/ListTilesTourSettings/manageAdmin.dart';
 import 'package:gamesphere/TabsTournament/ListTilesTourSettings/participantsManage.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:cloudinary_public/cloudinary_public.dart';
+import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'dart:typed_data';
+
 
 class SettingsTab extends StatefulWidget {
   final String tournamentId;
@@ -26,6 +32,12 @@ class _SettingsTabState extends State<SettingsTab> {
   bool _obsecurePassword = true;
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
+  String? _imageUrl;
+  File? _pickedImage;
+  final ImagePicker _picker = ImagePicker();
+  final cloudinary = CloudinaryPublic('dt2f6qqvk', 'GameSphere', cache: false);
+  Uint8List? _webImage;
+
   
   void _navigatePage(int targetpage){
     _settingsPageController.jumpToPage(targetpage-1);
@@ -40,6 +52,7 @@ class _SettingsTabState extends State<SettingsTab> {
     _descController = TextEditingController(text: widget.data['description']);
     _passwordController = TextEditingController(text: widget.data['password']);
     _isPasswordNeeded = widget.data['is_private'];
+    _imageUrl = widget.data['logo_url'];
   }
 
   @override
@@ -151,6 +164,8 @@ class _SettingsTabState extends State<SettingsTab> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              _buildLogoPicker(),
+              const SizedBox(height: 30),
               _buildTextField("Tournament Title*", _titleController, "e.g. Champions League 2026"),
               const SizedBox(height: 16),
               _buildTextField("Host Name*", _hostController, "Organizer Name"),
@@ -170,19 +185,102 @@ class _SettingsTabState extends State<SettingsTab> {
       ),
     );
   }
+  
+  Widget _buildLogoPicker(){
+    ImageProvider? displayImage;
+
+    if(kIsWeb && _webImage != null){
+      displayImage = MemoryImage(_webImage!);
+    }
+    else if(!kIsWeb && _pickedImage != null){
+      displayImage = FileImage(_pickedImage!);
+    }
+    else if(_imageUrl != null){
+      displayImage = NetworkImage(_imageUrl!);
+    }
+    return Stack(
+      children: [
+        CircleAvatar(
+          radius: 55,
+          backgroundColor: const Color(0xFF1E1E24),
+          backgroundImage: displayImage,
+          child: displayImage == null? const Icon(Icons.emoji_events, size: 50, color: Colors.grey): null,
+        ),
+        Positioned(
+          bottom: 0,
+          right: 0,
+          child: InkWell(
+            onTap: _pickImage,
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primary,
+                shape: BoxShape.circle,
+                border: Border.all(color: const Color(0xFF0E0E12), width: 2),
+              ),
+              child: const Icon(Icons.camera_alt, color: Colors.white, size: 20),
+            ),
+          ),
+        )
+      ],
+    );
+  }
+
+  Future<void> _pickImage() async{
+    final XFile? image = await _picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 70
+    );
+    if(image != null){
+      if(kIsWeb){
+        final bytes = await image.readAsBytes();
+        setState(() {
+          _webImage = bytes;
+          _pickedImage = File(image.path);
+        });
+      }
+      else{
+        setState(() {
+          _pickedImage = File(image.path);
+        });
+      }
+    }
+  }
 
   Future<void> _updateTournamentData() async{
     if(!_formKey.currentState!.validate()) return;
-
     setState(() => _isLoading = true);
 
     try{
+      String? finalImageUrl = _imageUrl;
+
+      if(_pickedImage != null){
+        CloudinaryResponse response;
+        if(kIsWeb){
+          response = await cloudinary.uploadFile(
+            CloudinaryFile.fromByteData(
+              ByteData.view(_webImage!.buffer),
+              identifier: 'logo_${widget.tournamentId}',
+              resourceType: CloudinaryResourceType.Image
+            )
+          );
+        }
+        else{
+          response = await cloudinary.uploadFile(
+            CloudinaryFile.fromFile(_pickedImage!.path, resourceType: CloudinaryResourceType.Image),
+          );
+        }
+
+        finalImageUrl = response.secureUrl;
+      }
+
       await FirebaseFirestore.instance.collection('tournaments').doc(widget.tournamentId).update({
         'title': _titleController.text.trim(),
         'host_name': _hostController.text.trim(),
         'description': _descController.text.trim(),
         'password': _passwordController.text.trim(),
         'is_private': _isPasswordNeeded,
+        'logo_url': finalImageUrl,
         'updated_At': FieldValue.serverTimestamp(),
       });
 
@@ -194,6 +292,7 @@ class _SettingsTabState extends State<SettingsTab> {
         _settingsPageController.animateToPage(0, duration: Duration(milliseconds: 200), curve: Curves.easeInOut);
       }
     } catch(e){
+      debugPrint("Cloudinary Upload Error: $e");
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Failed to update: $e", style: TextStyle(color: Colors.white)),backgroundColor: Color(0xFF1E1E24)),
       );

@@ -19,6 +19,16 @@ class _SignUpPageState extends State<SignUpPage> {
   final _studentIdController = TextEditingController();
   bool _isLoading = false;
 
+  @override
+  void dispose(){
+    _emailController.dispose();
+    _passwordController.dispose();
+    _firstnameController.dispose();
+    _lastnameController.dispose();
+    _studentIdController.dispose();
+    super.dispose();
+  }
+
   Future<void> _registerUser() async{
     if(_emailController.text.isEmpty || _passwordController.text.isEmpty || _firstnameController.text.isEmpty){
       ScaffoldMessenger.of(context).showSnackBar(

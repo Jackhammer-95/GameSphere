@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
-void confirmDeleteTournament(BuildContext context, String tournamentId, {bool call = false}) {
+void confirmDeleteTournament(BuildContext context, String tournamentId, {bool call = false, VoidCallback? onSuccess}) {
   showDialog(
     context: context,
     builder: (confirmContext) {
@@ -9,7 +9,7 @@ void confirmDeleteTournament(BuildContext context, String tournamentId, {bool ca
         child: Material(
           color: Colors.transparent,
           child: Container(
-            width: 280,
+            constraints: BoxConstraints(maxWidth: 280),
             decoration: BoxDecoration(
               color: const Color(0xFF1E1E24),
               borderRadius: BorderRadius.circular(24),
@@ -50,7 +50,7 @@ void confirmDeleteTournament(BuildContext context, String tournamentId, {bool ca
                         child: InkWell(
                           borderRadius: const BorderRadius.only(bottomRight: Radius.circular(24)),
                           onTap: () {
-                            againConfirmDeleteTournament(context, confirmContext, tournamentId, call: call);
+                            againConfirmDeleteTournament(context, confirmContext, tournamentId, call: call, onSuccess: onSuccess);
                           },
 
                           child: Container(
@@ -76,7 +76,7 @@ void confirmDeleteTournament(BuildContext context, String tournamentId, {bool ca
 }
 
 
-void againConfirmDeleteTournament(BuildContext context, BuildContext confirmContext, String tournamentId, {bool call = false}) {
+void againConfirmDeleteTournament(BuildContext context, BuildContext confirmContext, String tournamentId, {bool call = false, VoidCallback? onSuccess}) {
   showDialog(
     context: confirmContext,
     builder: (againConfirmContext) {
@@ -84,7 +84,7 @@ void againConfirmDeleteTournament(BuildContext context, BuildContext confirmCont
         child: Material(
           color: Colors.transparent,
           child: Container(
-            width: 310,
+            constraints: BoxConstraints(maxWidth: 310),
             decoration: BoxDecoration(
               color: const Color(0xFF1E1E24),
               borderRadius: BorderRadius.circular(12),
@@ -96,7 +96,7 @@ void againConfirmDeleteTournament(BuildContext context, BuildContext confirmCont
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: 30, horizontal: 20),
                   child: Text(
-                    "You are deleting this tournament.",
+                    "Warning: This action is permanent. All data will be deleted and cannot be recovered.",
                     textAlign: TextAlign.center,
                     style: TextStyle(color: Colors.white, fontSize: 16),
                   ),
@@ -138,6 +138,8 @@ void againConfirmDeleteTournament(BuildContext context, BuildContext confirmCont
                           onTap: () async {
                             try{
                               await FirebaseFirestore.instance.collection('tournaments').doc(tournamentId).delete();
+
+                              if(onSuccess != null) onSuccess();
 
                               if(againConfirmContext.mounted){
                                 Navigator.pop(againConfirmContext);
