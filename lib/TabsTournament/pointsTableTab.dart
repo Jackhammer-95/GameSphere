@@ -43,42 +43,57 @@ class buildPointsTableTab extends StatelessWidget {
         ClipRRect(
           borderRadius: BorderRadius.circular(12),
           child: Container(
-            constraints: const BoxConstraints(maxWidth: 1000),
-            decoration: BoxDecoration(
-              color: const Color(0xFF1E1E24),
-            ),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: DataTable(
-                headingRowColor: WidgetStateProperty.all(Colors.purple),
-                columnSpacing: 0,
-                horizontalMargin: 15,
-                headingTextStyle: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
-                columns: [
-                  DataColumn(label: SizedBox(width: 150, child: Text("TEAM NAME", textAlign: TextAlign.center))),
-                  buildCenterColumn(context.isMobile? "P":"PLAYED"),
-                  buildCenterColumn(context.isMobile? "W":"WON"),
-                  buildCenterColumn(context.isMobile? "D":"DRAWN"),
-                  buildCenterColumn(context.isMobile? "L":"LOST"),
-                  buildCenterColumn(context.isMobile? "PTS":"POINTS"),
-                  buildCenterColumn(context.isMobile? "GS":"GOALS\nSCORED"),
-                  buildCenterColumn(context.isMobile? "GC":"GOALS\nCONCECDED"),
-                  buildCenterColumn(context.isMobile? "GD":"GOAL\nDIFFERENCE"),
-                ],
-                rows: List.generate(data['teams_per_group'], (index) => DataRow(cells: [
-                  DataCell(SizedBox(width: 150, child: SingleChildScrollView(scrollDirection: Axis.horizontal,
-                    child: Text("Paris Saint Germain ${index + 1}", style: const TextStyle(color: Colors.white))
-                  ))),
-                  buildCenterCell(3),
-                  buildCenterCell(2),
-                  buildCenterCell(0),
-                  buildCenterCell(1),
-                  DataCell(SizedBox(width:context.isMobile? 45:90, child: Text("6", style: TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold), textAlign: TextAlign.center))),
-                  buildCenterCell(6),
-                  buildCenterCell(2),
-                  buildCenterCell(4),
-                ])),
-              ),
+            decoration: BoxDecoration(color: const Color(0xFF1E1E24)),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                DataTable(
+                  headingRowColor: WidgetStateProperty.all(Colors.purple),
+                  columnSpacing: 0,
+                  horizontalMargin: 15,
+                  columns: [
+                    DataColumn(label: SizedBox(width: 150, child: Text("TEAM NAME", textAlign: TextAlign.center))),
+                  ],
+                  rows: List.generate(data['teams_per_group'], (index) => DataRow(
+                    cells: [
+                      DataCell(SizedBox(width: 150, child: SingleChildScrollView(scrollDirection: Axis.horizontal,
+                        child: Text("Paris Saint Germain ${index + 1}", style: const TextStyle(color: Colors.white))
+                      ))),
+                    ]
+                  )),
+                ),
+                Flexible(
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: DataTable(
+                      headingRowColor: WidgetStateProperty.all(Colors.purple),
+                      columnSpacing: 0,
+                      horizontalMargin: 15,
+                      headingTextStyle: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                      columns: [
+                        buildCenterColumn(context.isMobile? "P":"PLAYED"),
+                        buildCenterColumn(context.isMobile? "W":"WON"),
+                        buildCenterColumn(context.isMobile? "D":"DRAWN"),
+                        buildCenterColumn(context.isMobile? "L":"LOST"),
+                        buildCenterColumn(context.isMobile? "PTS":"POINTS"),
+                        buildCenterColumn(context.isMobile? "GS":"GOALS\nSCORED"),
+                        buildCenterColumn(context.isMobile? "GC":"GOALS\nCONCECDED"),
+                        buildCenterColumn(context.isMobile? "GD":"GOAL\nDIFFERENCE"),
+                      ],
+                      rows: List.generate(data['teams_per_group'], (index) => DataRow(cells: [
+                        buildCenterCell(3),
+                        buildCenterCell(2),
+                        buildCenterCell(0),
+                        buildCenterCell(1),
+                        DataCell(SizedBox(width:context.isMobile? 45:90, child: Text("6", style: TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold), textAlign: TextAlign.center))),
+                        buildCenterCell(6),
+                        buildCenterCell(2),
+                        buildCenterCell(4),
+                      ])),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ),

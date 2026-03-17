@@ -74,7 +74,7 @@ class _SettingsTabState extends State<SettingsTab> {
         _buildEmptyPage(),
         _buildEditInfo(),
         _buildEmptyPage(),
-        ManageParticipants(data: widget.data, settingsPageController: _settingsPageController),
+        ManageParticipants(data: widget.data, settingsPageController: _settingsPageController, tournamentId: widget.tournamentId,),
         _buildEmptyPage(),
         ManageAdmin(tournamentId: widget.tournamentId, data: widget.data, userId: widget.userId, settingsPageController: _settingsPageController),
       ],
@@ -229,7 +229,6 @@ class _SettingsTabState extends State<SettingsTab> {
   Future<void> _pickImage() async{
     final XFile? image = await _picker.pickImage(
       source: ImageSource.gallery,
-      imageQuality: 70
     );
     if(image != null){
       if(kIsWeb){

@@ -150,7 +150,7 @@ class ProfileDashboard extends StatelessWidget {
                                                 if(userProv.phone.isNotEmpty)_buildDetailTile(Icons.phone_outlined, "Contact No.", userProv.phone),
                                                 if(userProv.dob != "(Select Date of Birth)")_buildDetailTile(Icons.calendar_month_outlined, "Date of Birth", "${userProv.dob} (age ${userProv.age} years)"),
                                                 const SizedBox(height: 15.0,),
-                                                if(context.isMobile) Text("Member Since", 
+                                                if(context.isMobile) Text("Member Since",
                                                   style: TextStyle(fontSize: 11.0, letterSpacing: 1.5, fontWeight: FontWeight.bold, color: Colors.white70)),
                                                 if(context.isMobile) const SizedBox(height: 4.0),
                                                 if(context.isMobile) Text(userProv.joinedDate, style: const TextStyle(color: Colors.white, fontSize: 15.0, fontWeight: FontWeight.w500)),
