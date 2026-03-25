@@ -136,6 +136,7 @@ class _ManageParticipantsState extends State<ManageParticipants> {
                   rows: List.generate(widget.data['teams_per_group'], (index){
                     var participant = participantMap[index];
                     bool isEmptySlot = participant == null;
+                    bool canEdit = isEmptySlot || (participant['imported'] == false);
                 
                     return DataRow(cells: [
                       DataCell(ConstrainedBox(
@@ -171,12 +172,12 @@ class _ManageParticipantsState extends State<ManageParticipants> {
                             Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                IconButton(
+                                if(canEdit)IconButton(
                                   padding: EdgeInsets.zero,
                                   icon: const Icon(Icons.edit, color: Colors.blueAccent),
                                   onPressed:() {
                                     _clearDialogData();
-                                    _showAddTeamDialog(groupName.codeUnitAt(0)-65, index);
+                                    _showAddTeamDialog(groupName.codeUnitAt(0)-65, index, isEmptySlot);
                                     },
                                 ),
                                 if(!isEmptySlot)IconButton(
@@ -202,7 +203,7 @@ class _ManageParticipantsState extends State<ManageParticipants> {
     );
   }
 
-  void _showAddTeamDialog(int groupIndex, int slotIndex){
+  void _showAddTeamDialog(int groupIndex, int slotIndex, bool isEmptySlot){
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
@@ -262,7 +263,7 @@ class _ManageParticipantsState extends State<ManageParticipants> {
                                           showPhoneCode: false,
                                           exclude: <String> ['IL', 'IM', 'AX', 'AC', 'IO', 'BQ', 'CX', 'FK', 'PF', 'FO', 'GG', 'JE', 'NF', 'TK', 'WF'],
                                           onSelect: (Country country){
-                                            setState(() {
+                                            setDialogState(() {
                                               if(country.countryCode == 'PS'){
                                                 selectedCountry = "Palestine";
                                               }
@@ -440,6 +441,7 @@ class _ManageParticipantsState extends State<ManageParticipants> {
             const SnackBar(content: Text("This team is already registered in this tournament!", style: TextStyle(color: Colors.white)), backgroundColor: Color(0xFF1E1E24)),
           );
         }
+        Navigator.pop(context);
         return;
       }
 
@@ -447,7 +449,7 @@ class _ManageParticipantsState extends State<ManageParticipants> {
 
       if (teamDoc.exists) {
         Map<String, dynamic> teamData = teamDoc.data() as Map<String, dynamic>;
-        await _saveParticipant(group, slot, teamDoc.id, teamData);
+        await _saveParticipant(group, slot, teamDoc.id, true, teamData);
         if(mounted) Navigator.pop(context);
       }
       else {
@@ -501,7 +503,7 @@ class _ManageParticipantsState extends State<ManageParticipants> {
         'flag': selectedFlag,
       });
 
-      await _saveParticipant(group, slot, newTeam.id, {
+      await _saveParticipant(group, slot, newTeam.id, false, {
         'name': _nameController.text.trim(),
         'logo_url': logoUrl,
         'country': selectedCountry,
@@ -521,7 +523,7 @@ class _ManageParticipantsState extends State<ManageParticipants> {
 
 
   // Save
-  Future<void> _saveParticipant(int groupIndex, int slotIndex, String teamId, Map<String, dynamic> teamData) async {
+  Future<void> _saveParticipant(int groupIndex, int slotIndex, String teamId, bool imported, Map<String, dynamic> teamData) async {
     String groupName = String.fromCharCode(65 + groupIndex);
     String slotId = "Group${groupName}_Slot$slotIndex";
 
@@ -541,6 +543,7 @@ class _ManageParticipantsState extends State<ManageParticipants> {
     'scored': 0,
     'conceded': 0,
     'difference': 0,
+    'imported': imported,
     'added_at': FieldValue.serverTimestamp(),
     });
   }

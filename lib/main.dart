@@ -3,6 +3,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:gamesphere/structures/Explore.dart';
 import 'package:gamesphere/structures/MyTournament.dart';
+import 'package:gamesphere/structures/SearchTeams.dart';
 import 'TheProvider.dart';
 import 'Login_actions/LoginPage.dart';
 import 'firebase_options.dart';
@@ -94,7 +95,7 @@ class GameSphereHome extends StatelessWidget {
             actions: [
               // Login button time!!!
               if(loggedIn) IconButton(
-                onPressed: () => {},
+                onPressed: () => {Navigator.push(context, MaterialPageRoute(builder: (context) => const SearchTeamPage()),)},
                 icon: const Icon(Icons.notifications_outlined, size: 25.0, color: Colors.white),
               ),
               context.isMobile ? const SizedBox(width: 2.0) : const SizedBox(width: 18.0),

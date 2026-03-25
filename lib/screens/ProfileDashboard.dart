@@ -15,7 +15,7 @@ class ProfileDashboard extends StatelessWidget {
       backgroundColor: Color(0xFF1E1E24),
       body: Row(
         children: [
-          if (!context.isMobile)
+          if(context.screenWidth > 1200)
             Expanded(
             flex: 10,
             child: Container(
@@ -74,7 +74,7 @@ class ProfileDashboard extends StatelessWidget {
               ),
             ),
           ),
-          if(!context.isMobile) VerticalDivider(width: 2.0, color: Colors.white30),
+          if(context.screenWidth > 1200) VerticalDivider(width: 2.0, color: Colors.white30),
           Expanded(
             flex: 28,
             child: Stack(
@@ -240,8 +240,8 @@ class ProfileDashboard extends StatelessWidget {
               ],
             ),
           ),
-          if(!context.isMobile) VerticalDivider(width: 2.0, color: Colors.white30),
-          if (!context.isMobile)
+          if(context.screenWidth > 1200) VerticalDivider(width: 2.0, color: Colors.white30),
+          if(context.screenWidth > 1200)
             Expanded(
               flex: 12,
               child: Container(
