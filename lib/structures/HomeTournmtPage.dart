@@ -68,119 +68,112 @@ class _TournamentDashboardState extends State<TournamentDashboard>{
   }
 
   Widget _buildSliverAppBar(BuildContext context, Map<String, dynamic> data, bool isAdmin, int tabCount, int format) {
-    return StreamBuilder<User?>(
-      stream: FirebaseAuth.instance.authStateChanges(),
-      builder: (context, snapshot) {
-        final User? user = snapshot.data;
-
-        return SliverAppBar(
-          expandedHeight: 180.0,
-          floating: false,
-          pinned: true,
-          backgroundColor: const Color(0xFF0E0E12),
-          elevation: 0,
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20),
-            onPressed: () => Navigator.pop(context),
-          ),
-          actions: [
-            buildProfileOrLogin(context, true, user)
-          ],
-          flexibleSpace: FlexibleSpaceBar(
-            centerTitle: true,
-            titlePadding: const EdgeInsets.only(bottom: 50),
-            title: SizedBox(
-              width: double.infinity,
-              child: Text(
-                data['title'].toUpperCase(),
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 18,
-                  letterSpacing:context.isMobile? 0: 2,
-                ),
-              ),
-            ),
-            background: Stack(
-              fit: StackFit.expand,
-              children: [
-                Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.blueAccent.withOpacity(0.15),
-                        const Color(0xFF0E0E12),
-                      ],
-                    ),
-                  ),
-                ),
-                Positioned(
-                  top: context.isMobile? 30: 5,
-                  right: 0,
-                  left: 0,
-                  child: Align(
-                    alignment:Alignment.topCenter,
-                    child:(data['logo_url'] != null && data['logo_url'].toString().isNotEmpty)
-                    ? SizedBox(
-                      height: 90,
-                      width: 150,
-                      child: Image.network(
-                        data['logo_url'],
-                        fit: BoxFit.contain,
-                        loadingBuilder: (context, child, loadingProgress){
-                          if(loadingProgress == null) return child;
-                          return Center(
-                            child: CircularProgressIndicator(
-                              value: loadingProgress.expectedTotalBytes != null
-                              ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!: null,
-                              strokeWidth: 2,
-                            ),
-                          );
-                        },
-                      ),
-                    )
-                    :Icon(Icons.emoji_events_outlined, size: 100, color: Colors.white.withOpacity(0.1)),
-                  ),
-                ),
-                if(!context.isMobile) Positioned(
-                  left: -50,
-                  top: -20,
-                  child: Icon(Icons.emoji_events, size: 200, color: Colors.white.withOpacity(0.08)),
-                ),
-              ],
+    return SliverAppBar(
+      expandedHeight: 180.0,
+      floating: false,
+      pinned: true,
+      backgroundColor: const Color(0xFF0E0E12),
+      elevation: 0,
+      leading: IconButton(
+        icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20),
+        onPressed: () => Navigator.pop(context),
+      ),
+      actions: [
+        buildProfileOrLogin(context)
+      ],
+      flexibleSpace: FlexibleSpaceBar(
+        centerTitle: true,
+        titlePadding: const EdgeInsets.only(bottom: 50),
+        title: SizedBox(
+          width: double.infinity,
+          child: Text(
+            data['title'].toUpperCase(),
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w900,
+              fontSize: 18,
+              letterSpacing:context.isMobile? 0: 2,
             ),
           ),
-          bottom: PreferredSize(
-            preferredSize: const Size.fromHeight(40),
-            child: Container(
+        ),
+        background: Stack(
+          fit: StackFit.expand,
+          children: [
+            Container(
               decoration: BoxDecoration(
-                border: Border(bottom: BorderSide(color: Colors.white.withOpacity(0.05))),
-              ),
-              child: TabBar(
-                isScrollable: false,
-                indicatorColor: Colors.blueAccent,
-                indicatorWeight: 3,
-                labelColor: Colors.white,
-                unselectedLabelColor: Colors.white38,
-                labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 1),
-                tabs: [
-                  context.isMobile? Tab(icon: Icon(Icons.info_outline)): Tab(text: "INFO"),
-                  context.isMobile? Tab(icon: Icon(Icons.calendar_month_outlined)): Tab(text: "FIXTURES"),
-                  if(format != 2) (context.isMobile? Tab(icon: Icon(Icons.format_list_numbered)): Tab(text: "STANDINGS")),
-                  if(format != 0) (context.isMobile? Tab(icon: Icon(Icons.account_tree_outlined)): Tab(text: "BRACKETS")),
-                  context.isMobile? Tab(icon: Icon(Icons.chat_outlined)): Tab(text: "ASK"),
-                  if(isAdmin) (context.isMobile? Tab(icon: Icon(Icons.settings)): Tab(text: "SETTINGS")),
-                ],
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.blueAccent.withOpacity(0.15),
+                    const Color(0xFF0E0E12),
+                  ],
+                ),
               ),
             ),
+            Positioned(
+              top: context.isMobile? 30: 5,
+              right: 0,
+              left: 0,
+              child: Align(
+                alignment:Alignment.topCenter,
+                child:(data['logo_url'] != null && data['logo_url'].toString().isNotEmpty)
+                ? SizedBox(
+                  height: 90,
+                  width: 150,
+                  child: Image.network(
+                    data['logo_url'],
+                    fit: BoxFit.contain,
+                    loadingBuilder: (context, child, loadingProgress){
+                      if(loadingProgress == null) return child;
+                      return Center(
+                        child: CircularProgressIndicator(
+                          value: loadingProgress.expectedTotalBytes != null
+                          ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!: null,
+                          strokeWidth: 2,
+                        ),
+                      );
+                    },
+                  ),
+                )
+                :Icon(Icons.emoji_events_outlined, size: 100, color: Colors.white.withOpacity(0.1)),
+              ),
+            ),
+            if(!context.isMobile) Positioned(
+              left: -50,
+              top: -20,
+              child: Icon(Icons.emoji_events, size: 200, color: Colors.white.withOpacity(0.08)),
+            ),
+          ],
+        ),
+      ),
+      bottom: PreferredSize(
+        preferredSize: const Size.fromHeight(40),
+        child: Container(
+          decoration: BoxDecoration(
+            border: Border(bottom: BorderSide(color: Colors.white.withOpacity(0.05))),
           ),
-        );
-      }
+          child: TabBar(
+            isScrollable: false,
+            indicatorColor: Colors.blueAccent,
+            indicatorWeight: 3,
+            labelColor: Colors.white,
+            unselectedLabelColor: Colors.white38,
+            labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 1),
+            tabs: [
+              context.isMobile? Tab(icon: Icon(Icons.info_outline)): Tab(text: "INFO"),
+              context.isMobile? Tab(icon: Icon(Icons.calendar_month_outlined)): Tab(text: "FIXTURES"),
+              if(format != 2) (context.isMobile? Tab(icon: Icon(Icons.format_list_numbered)): Tab(text: "STANDINGS")),
+              if(format != 0) (context.isMobile? Tab(icon: Icon(Icons.account_tree_outlined)): Tab(text: "BRACKETS")),
+              context.isMobile? Tab(icon: Icon(Icons.chat_outlined)): Tab(text: "ASK"),
+              if(isAdmin) (context.isMobile? Tab(icon: Icon(Icons.settings)): Tab(text: "SETTINGS")),
+            ],
+          ),
+        ),
+      ),
     );
   }
 

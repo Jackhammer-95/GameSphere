@@ -3,7 +3,6 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:gamesphere/structures/Explore.dart';
 import 'package:gamesphere/structures/MyTournament.dart';
-import 'package:gamesphere/structures/SearchTeams.dart';
 import 'TheProvider.dart';
 import 'Login_actions/LoginPage.dart';
 import 'firebase_options.dart';
@@ -70,9 +69,11 @@ class GameSphereHome extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final userProv = context.watch<UserProvider>();
+
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
-      builder: (context, snapshot) {
+      builder: (context, snapshot){
         final bool loggedIn = snapshot.hasData && (snapshot.data != null);
         final User? user = snapshot.data;
 
@@ -95,11 +96,55 @@ class GameSphereHome extends StatelessWidget {
             actions: [
               // Login button time!!!
               if(loggedIn) IconButton(
-                onPressed: () => {Navigator.push(context, MaterialPageRoute(builder: (context) => const SearchTeamPage()),)},
+                onPressed: () => {},
                 icon: const Icon(Icons.notifications_outlined, size: 25.0, color: Colors.white),
               ),
               context.isMobile ? const SizedBox(width: 2.0) : const SizedBox(width: 18.0),
-              buildProfileOrLogin(context, loggedIn, user)
+              Padding(
+                padding: context.isMobile? const EdgeInsets.only(right: 12.0) : const EdgeInsets.only(right: 24.0),
+                child: loggedIn ? Consumer<UserProvider>(
+                  builder: (context, userProv, child) {
+                    return IconButton(
+                      icon: CircleAvatar(
+                        backgroundColor: Colors.white30,
+                        radius: 18,
+                        child: CircleAvatar(
+                          backgroundColor: const Color.fromARGB(255, 57, 92, 109),
+                          radius: 17,
+                          backgroundImage: userProv.dpUrl == null? null : NetworkImage(userProv.dpUrl!),
+                          child: userProv.isLoading
+                          ? const SizedBox(
+                            width: 12.0,
+                            height: 12.0,
+                            child: CircularProgressIndicator(strokeWidth: 2.0, color: Colors.white,),
+                          )
+                          : userProv.dpUrl == null? Text(
+                            userProv.initial,
+                            style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                          ): null,
+                        ),
+                      ),
+                      onPressed: (){
+                        showProfileDialog(context, user!, userProv.dpUrl);
+                      },
+                    );
+                  }
+                )
+                : OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => const GameSphereLogin()),);
+                  },
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    side: const BorderSide(color: Color.fromARGB(77, 255, 255, 255)),
+                    padding: context.isMobile
+                        ? const EdgeInsets.symmetric(horizontal: 18, vertical: 9)
+                        : const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  ),
+                  icon: context.isMobile ? const Icon(Icons.login, size: 14) : const Icon(Icons.login, size: 18),
+                  label: context.isMobile? const Text("LOGIN", style: TextStyle(fontSize: 12.0)) : const Text("LOGIN"),
+                ),
+              )
             ],
           ),
           body: SingleChildScrollView(
@@ -144,7 +189,7 @@ class GameSphereHome extends StatelessWidget {
                           children: [
                             ElevatedButton(
                               onPressed: () {
-                                loggedIn ? {Navigator.push(context, MaterialPageRoute(builder: (context) => const CreateTournamentPage()),)}
+                                userProv.isLoggedIn? {Navigator.push(context, MaterialPageRoute(builder: (context) => const CreateTournamentPage()))}
                                 :{
                                   Navigator.push(context, MaterialPageRoute(builder: (context) => const GameSphereLogin()),),
                                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
@@ -161,7 +206,7 @@ class GameSphereHome extends StatelessWidget {
                               ),
                               child: const Text("CREATE TOURNAMENT"),
                             ),
-                            if(loggedIn) ElevatedButton(
+                            if(userProv.isLoggedIn) ElevatedButton(
                               onPressed: () {Navigator.push(context, MaterialPageRoute(builder: (context) => MyTournament()),);},
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color.fromARGB(255, 57, 57, 81),
@@ -307,7 +352,10 @@ class _VideoBackgroundState extends State<VideoBackground>{
   @override
   void initState(){
     super.initState();
-    _controller = VideoPlayerController.asset("Assets/videos/HD_homeBG_GameSphere.mp4")..initialize().then((_){
+    _controller = VideoPlayerController.asset(
+      "Assets/videos/HD_homeBG_GameSphere.mp4",
+      videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true)
+    )..initialize().then((_){
       if(mounted){
         _controller.setLooping(true);
         _controller.setVolume(0.0);

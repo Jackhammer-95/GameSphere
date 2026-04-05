@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:gamesphere/TheProvider.dart';
+import 'package:provider/provider.dart';
+import 'package:gamesphere/structures/TeamProfile.dart';
 import 'package:gamesphere/widgets/ProfileDialog.dart';
 
 class SearchTeamPage extends StatefulWidget {
@@ -20,11 +21,16 @@ class _SearchTeamPageState extends State<SearchTeamPage> {
   final int _documentLimit = 10;
   String _searchQuery = "";
   final TextEditingController _searchController = TextEditingController();
+  bool _isSearching = false;
 
   void _handleSearch(){
     setState(() {
       _searchQuery = _searchController.text.trim().toLowerCase();
+      _teams.clear();
+      _lastDocument = null;
+      _hasMore = true;
     });
+    _fetchTeams();
     FocusScope.of(context).unfocus();
   }
 
@@ -57,11 +63,21 @@ class _SearchTeamPageState extends State<SearchTeamPage> {
     setState(() => _isLoading = true);
 
     try {
-      Query query = FirebaseFirestore.instance.collection('teams').orderBy('created_at', descending: true).limit(_documentLimit);
+      Query query = FirebaseFirestore.instance.collection('teams');
+
+      if (_searchQuery.isNotEmpty){
+        query = query.where('name_lowercase', isGreaterThanOrEqualTo: _searchQuery)
+        .where('name_lowercase', isLessThanOrEqualTo: '$_searchQuery\uf8ff').orderBy('name_lowercase');
+      }
+      else{
+        query = query.orderBy('created_at', descending: true);
+      }
 
       if(_lastDocument != null){
         query = query.startAfterDocument(_lastDocument!);
       }
+
+      query = query.limit(_documentLimit);
 
       final querySnapshot = await query.get();
 
@@ -92,143 +108,162 @@ class _SearchTeamPageState extends State<SearchTeamPage> {
 
   @override
   Widget build(BuildContext context) {
+    final userProv = context.watch<UserProvider>();
     
-    return StreamBuilder<User?>(
-      stream: FirebaseAuth.instance.authStateChanges(),
-      builder: (context, snapshot) {
-        final bool loggedIn = snapshot.hasData && (snapshot.data != null);
-        final User? user = snapshot.data;
-
-        final filteredList = _teams.where((doc){
-          final data = doc.data() as Map<String, dynamic>;
-          final String title = (data['name'] ?? "").toString().toLowerCase();
-          final String teamId = doc.id.toString().toLowerCase();
-
-          if(_searchQuery.isEmpty) return true;
-          return title.contains(_searchQuery) || teamId == _searchQuery;
-        }).toList();
-
-        return Stack(
-          children: [
-            Positioned.fill(
-              child: Image.asset(
-                "Assets/images/Homepage_extended_GameSphere.jpg",
-                fit: BoxFit.cover,
-              ),
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: Image.asset(
+            "Assets/images/Homepage_extended_GameSphere.jpg",
+            fit: BoxFit.cover,
+          ),
+        ),
+        Scaffold(
+          backgroundColor: Colors.transparent,
+          appBar: AppBar(
+            backgroundColor: Colors.transparent,
+            surfaceTintColor: Colors.transparent,
+            elevation: 0,
+            centerTitle: false,
+            title: (_isSearching && context.isMobile)? null
+            : Padding(
+              padding: EdgeInsets.only(left: context.isMobile? 0:8),
+              child: Text("EXPLORE TEAMS", style: TextStyle(fontSize: context.isMobile? 20: 24, fontWeight: FontWeight.w900)),
             ),
-            Scaffold(
-              backgroundColor: Colors.transparent,
-              appBar: AppBar(
-                backgroundColor: Colors.transparent,
-                surfaceTintColor: Colors.transparent,
-                elevation: 0,
-                centerTitle: false,
-                title: const Padding(
-                  padding: EdgeInsets.only(left: 8.0),
-                  child: Text("EXPLORE TEAMS", style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900)),
-                ),
-                actions: [
-                  if(!context.isMobile) Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: SizedBox(
-                      width: 300,
-                      height: 35,
-                      child: Row(
-                        children: [
-                          Expanded(child: _buildSearchField()),
-                          InkWell(
-                            borderRadius: BorderRadius.circular(2),
-                            onTap: _handleSearch,
-                            child: Container(
-                              width: 35,
-                              height: double.infinity,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(2),
-                                color: Colors.white
-                              ),
-                              child: const Icon(Icons.search, color: Color(0xFF1E1E24)),
-                            ),
-                          ),
-                          const SizedBox(width: 10)
-                        ],
-                      )
-                    ),
+            actions: [
+              if(context.isMobile) _isSearching?_buildMobileSearchBar()
+              : IconButton(
+                icon: Icon(Icons.search, color: Colors.white),
+                onPressed: () {
+                  setState(() {
+                    _isSearching = true;
+                  });
+                },
+              ),
+              if(!context.isMobile)ElevatedButton(
+                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SearchTeamPage())),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color.fromARGB(255, 57, 57, 81),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  buildProfileOrLogin(context, loggedIn, user)
-                ],
+                ),
+                child: Text("Create Team", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               ),
-              body: RefreshIndicator(
-                onRefresh: _onRefresh,
-                color: Colors.blueAccent,
-                child: (filteredList.isEmpty && !_isLoading)? _buildEmptyState()
-                :ListView.builder(
-                  controller: _scrollController,
-                  cacheExtent: context.screenHeight*4,
-                  itemCount: filteredList.length + (_hasMore? 1 : 0),
-                  padding: const EdgeInsets.all(16),
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  itemBuilder: (context, index){
-                    if (index < filteredList.length){
-                      var doc = filteredList[index];
-                      var data = doc.data() as Map<String, dynamic>;
-
-                      return _buildTournamentCard(context, data, doc.id, loggedIn);
-                    }
-                    else{
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 32.0),
-                        child: Center(
-                          child: _hasMore? const CircularProgressIndicator(color: Colors.blueAccent)
-                          : const Text("No more teams", style: TextStyle(color: Colors.white24)),
+              const SizedBox(width: 10),
+              if(!context.isMobile) Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: SizedBox(
+                  width: 300,
+                  height: 35,
+                  child: Row(
+                    children: [
+                      Expanded(child: _buildSearchField()),
+                      InkWell(
+                        borderRadius: BorderRadius.circular(2),
+                        onTap: _handleSearch,
+                        child: Container(
+                          width: 35,
+                          height: double.infinity,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(2),
+                            color: Colors.white
+                          ),
+                          child: const Icon(Icons.search, color: Color(0xFF1E1E24)),
                         ),
-                      );
-                    }
-                  },
+                      ),
+                      const SizedBox(width: 10)
+                    ],
+                  )
                 ),
               ),
-              bottomNavigationBar: (context.isMobile)? _buildMobileSearchBar(): null,
+              buildProfileOrLogin(context)
+            ],
+          ),
+          body: RefreshIndicator(
+            onRefresh: _onRefresh,
+            color: Colors.blueAccent,
+            child: (_teams.isEmpty && !_isLoading)? _buildEmptyState()
+            :ListView.builder(
+              controller: _scrollController,
+              itemCount: _teams.length + (_hasMore? 1 : 0),
+              padding: const EdgeInsets.all(16),
+              physics: const AlwaysScrollableScrollPhysics(),
+              itemBuilder: (context, index){
+                if (index < _teams.length){
+                  var doc = _teams[index];
+                  var data = doc.data() as Map<String, dynamic>;
+
+                  return _buildTeamCard(context, data, doc.id, userProv.isLoggedIn);
+                }
+                else{
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 32.0),
+                    child: Center(
+                      child: _hasMore? const CircularProgressIndicator(color: Colors.blueAccent)
+                      : const Text("No more teams", style: TextStyle(color: Colors.white24)),
+                    ),
+                  );
+                }
+              },
             ),
-          ],
-        );
-      }
+          ),
+          bottomNavigationBar: (context.isMobile)
+          ? BottomAppBar(
+            color: Colors.transparent,
+            height: 85,
+            elevation: 0,
+            padding: EdgeInsets.fromLTRB(10, 15, 10, 20),
+            child: Align(
+              alignment: Alignment.topLeft,
+              child: ElevatedButton(
+                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SearchTeamPage())),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color.fromARGB(255, 57, 57, 81),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: Text("Create New Team", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              ),
+            ),
+          ):null,
+        ),
+      ],
     );
   }
 
   Widget _buildMobileSearchBar(){
-    return Transform.translate(
-      offset: Offset(0, -MediaQuery.of(context).viewInsets.bottom),
-      child: BottomAppBar(
-        color: Colors.transparent,
-        elevation: 0,
-        height: 85,
-        padding: EdgeInsets.fromLTRB(10, 15, 10, 20),
-        child: Align(
-          alignment: Alignment.topLeft,
-          child: SizedBox(
-            width: 300,
-            height: 35,
-            child: Row(
-              children: [
-                Expanded(child: _buildSearchField()),
-                InkWell(
-                  borderRadius: BorderRadius.circular(2),
-                  onTap: _handleSearch,
-                  child: Container(
-                    width: 35,
-                    height: double.infinity,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(2),
-                      color: Colors.white
-                    ),
-                    child: Icon(Icons.search, color: const Color(0xFF1E1E24)),
-                  ),
-                ),
-                const SizedBox(width: 10)
-              ],
-            )
+    return SizedBox(
+      width: 300,
+      height: 35,
+      child: Row(
+        children: [
+          IconButton(
+            icon: Icon(Icons.close, size: 20,),
+            onPressed: (){setState(() {
+              _isSearching = false;
+            });},
           ),
-        ),
-      ),
+          Expanded(child: _buildSearchField()),
+          InkWell(
+            borderRadius: BorderRadius.circular(2),
+            onTap: _handleSearch,
+            child: Container(
+              width: 35,
+              height: double.infinity,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(2),
+                color: Colors.white
+              ),
+              child: Icon(Icons.search, color: const Color(0xFF1E1E24)),
+            ),
+          ),
+          const SizedBox(width: 10)
+        ],
+      )
     );
   }
 
@@ -255,6 +290,7 @@ class _SearchTeamPageState extends State<SearchTeamPage> {
                   setState(() {
                     _searchQuery = "";
                   });
+                  _onRefresh();
                 },
               )
             : const SizedBox.shrink();
@@ -270,8 +306,7 @@ class _SearchTeamPageState extends State<SearchTeamPage> {
     );
   }
 
-  Widget _buildTournamentCard(BuildContext context, Map<String, dynamic> data, String teamId, bool isLoggedIn){
-    int playerCount = data['players'] is List ? (data['players'] as List).length : 0;
+  Widget _buildTeamCard(BuildContext context, Map<String, dynamic> data, String teamId, bool isLoggedIn){
     
     return Align(
       alignment: Alignment.center,
@@ -334,9 +369,9 @@ class _SearchTeamPageState extends State<SearchTeamPage> {
                                 children: [
                                   Icon(Icons.group, color: Theme.of(context).colorScheme.primary, size: 20),
                                   const SizedBox(width: 8),
-                                  Text("$playerCount", style: TextStyle(color: Theme.of(context).colorScheme.primary)),
+                                  Text((data['squad_size'] ?? 0).toString(), style: TextStyle(color: Theme.of(context).colorScheme.primary)),
                                   Spacer(),
-                                  Text(data['flag'], style: TextStyle(fontSize: 16)),
+                                  if(data['flag'] != null) Text(data['flag'], style: TextStyle(fontSize: 16)),
                                 ],
                               ),
                               const SizedBox(height: 8),
@@ -354,7 +389,7 @@ class _SearchTeamPageState extends State<SearchTeamPage> {
                 ),
               ),
               onTap: (){
-                // Navigator.push(context, MaterialPageRoute(builder: (context) => TeamDashboard(teamId: teamId)));
+                Navigator.push(context, MaterialPageRoute(builder: (context) => TeamDashboard(teamId: teamId)));
               },
             ),
           ),
@@ -368,7 +403,7 @@ class _SearchTeamPageState extends State<SearchTeamPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.shield_outlined, size: 80, color: Colors.white.withOpacity(0.1)),
+          Icon(Icons.search_off, size: 80, color: Colors.white.withOpacity(0.1)),
           const SizedBox(height: 20),
           const Text(
             "NO TEAMS FOUND",

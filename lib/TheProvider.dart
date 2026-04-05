@@ -28,6 +28,7 @@ class UserProvider extends ChangeNotifier {
   Timestamp? _createdAt;
   bool _isLoading = false;
 
+  bool get isLoggedIn => _uid != null;
   String get uid => _uid ?? "";
   String get firstName => _firstName ?? "";
   String get lastName => _lastName ?? "";
@@ -144,6 +145,6 @@ class UserProvider extends ChangeNotifier {
 }
 
 
-// profile: circle dp insert image, banner, liked sports
-// tournament password, tournament id public, manage participants with groupwise, enter participant with string or team id(if have account)
+// profile: banner, liked sports
+// only keep team id in tournament participants, all searchable page modify,
 //  

@@ -5,38 +5,42 @@ import 'package:gamesphere/TheProvider.dart';
 import 'package:gamesphere/screens/ProfileDashboard.dart';
 import 'package:provider/provider.dart';
 
-Widget buildProfileOrLogin(BuildContext context, bool loggedIn, User? user){
+Widget buildProfileOrLogin(BuildContext context){
+  final userProv = context.watch<UserProvider>();
+
   return Padding(
     padding: context.isMobile? const EdgeInsets.only(right: 12.0) : const EdgeInsets.only(right: 24.0),
-    child: loggedIn ? Consumer<UserProvider>(
-      builder: (context, userProv, child) {
-        return IconButton(
-          icon: CircleAvatar(
-            backgroundColor: Colors.white30,
-            radius: 18,
-            child: CircleAvatar(
-              backgroundColor: const Color.fromARGB(255, 57, 92, 109),
-              radius: 17,
-              backgroundImage: userProv.dpUrl == null? null : NetworkImage(userProv.dpUrl!),
-              child: userProv.isLoading
-                ? const SizedBox(
-                  width: 12.0,
-                  height: 12.0,
-                  child: CircularProgressIndicator(strokeWidth: 2.0, color: Colors.white,),
-                )
-                : userProv.dpUrl == null? Text(
-                  userProv.initial,
-                  style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-                ):null,
-            ),
+    child: userProv.isLoggedIn? 
+      IconButton(
+        icon: CircleAvatar(
+          backgroundColor: Colors.white30,
+          radius: 18,
+          child: CircleAvatar(
+            backgroundColor: const Color.fromARGB(255, 57, 92, 109),
+            radius: 17,
+            backgroundImage: userProv.dpUrl == null? null : NetworkImage(userProv.dpUrl!),
+            child: userProv.isLoading
+              ? const SizedBox(
+                width: 12.0,
+                height: 12.0,
+                child: CircularProgressIndicator(strokeWidth: 2.0, color: Colors.white,),
+              )
+              : userProv.dpUrl == null? Text(
+                userProv.initial,
+                style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+              ):null,
           ),
-          onPressed: () => showProfileDialog(context, user!, userProv.dpUrl)
-        );
-      }
-    )
-    : OutlinedButton.icon(
+        ),
         onPressed: () {
-          Navigator.push(context, MaterialPageRoute(builder: (context) => const GameSphereLogin()));
+          final currentUser = FirebaseAuth.instance.currentUser;
+          if(currentUser != null){
+            showProfileDialog(context, currentUser, userProv.dpUrl);
+          }
+        }
+      )
+      :OutlinedButton.icon(
+        onPressed: () => {
+          userProv.isLoggedIn? null: Navigator.push(context, MaterialPageRoute(builder: (context) => const GameSphereLogin()))
         },
         style: OutlinedButton.styleFrom(
           foregroundColor: Colors.white,
@@ -45,8 +49,8 @@ Widget buildProfileOrLogin(BuildContext context, bool loggedIn, User? user){
               ? const EdgeInsets.symmetric(horizontal: 18, vertical: 9)
               : const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
         ),
-        icon: context.isMobile ? const Icon(Icons.login, size: 14) : const Icon(Icons.login, size: 18),
-        label: context.isMobile? const Text("LOGIN", style: TextStyle(fontSize: 12.0)) : const Text("LOGIN"),
+        icon: Icon(Icons.login, size: context.isMobile? 14:18),
+        label: Text("LOGIN", style: TextStyle(fontSize: context.isMobile? 12:14)),
       ),
   );
 }

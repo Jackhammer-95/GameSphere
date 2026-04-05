@@ -24,11 +24,16 @@ class _MyTournamentState extends State<MyTournament> {
   final int _documentLimit = 10;
   String _searchQuery = "";
   final TextEditingController _searchController = TextEditingController();
+  bool _isSearching = false;
 
   void _handleSearch(){
     setState(() {
       _searchQuery = _searchController.text.trim().toLowerCase();
+      _tournaments.clear();
+      _lastDocument = null;
+      _hasMore = true;
     });
+    _fetchTournaments();
     FocusScope.of(context).unfocus();
   }
 
@@ -61,11 +66,18 @@ class _MyTournamentState extends State<MyTournament> {
     setState(() => _isLoading = true);
 
     try {
-      Query query = FirebaseFirestore.instance.collection('tournaments').where('admins', arrayContains: userUid).limit(_documentLimit);
+      Query query = FirebaseFirestore.instance.collection('tournaments').where('admins', arrayContains: userUid);
+
+      if (_searchQuery.isNotEmpty){
+        query = query.where('title_lowercase', isGreaterThanOrEqualTo: _searchQuery)
+        .where('title_lowercase', isLessThanOrEqualTo: '$_searchQuery\uf8ff').orderBy('title_lowercase');
+      }
 
       if(_lastDocument != null){
         query = query.startAfterDocument(_lastDocument!);
       }
+
+      query = query.limit(_documentLimit);
 
       final querySnapshot = await query.get();
 
@@ -95,97 +107,90 @@ class _MyTournamentState extends State<MyTournament> {
 
   @override
   Widget build(BuildContext context) {
+    bool fullEmpty = true;
 
-    return StreamBuilder<User?>(
-      stream: FirebaseAuth.instance.authStateChanges(),
-      builder: (context, snapshot) {
-        final bool loggedIn = snapshot.hasData && (snapshot.data != null);
-        final User? user = snapshot.data;
-        bool fullEmpty = true;
-
-        final filteredList = _tournaments.where((doc){
-          final data = doc.data() as Map<String, dynamic>;
-          final String title = (data['title'] ?? "").toString().toLowerCase();
-          final String tournamentid = (data['tournament_id'] ?? "").toString().toLowerCase();
-
-          if(_searchQuery.isEmpty) return true;
-          else fullEmpty = false;
-          return title.contains(_searchQuery) || tournamentid == _searchQuery;
-        }).toList();
-
-        return Scaffold(
-          backgroundColor: const Color(0xFF0E0E12),
-          appBar: AppBar(
-            backgroundColor: Colors.transparent,
-            surfaceTintColor: Colors.transparent,
-            centerTitle: false,
-            title: Padding(
-              padding: const EdgeInsets.only(left: 8.0),
-              child: Text("MY  TOURNAMENTS", style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900)),
-            ),
-            actions: [
-              if(!context.isMobile) Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: SizedBox(
-                  width: 300,
-                  height: 35,
-                  child: Row(
-                    children: [
-                      Expanded(child: _buildSearchField()),
-                      InkWell(
+    return Scaffold(
+      backgroundColor: const Color(0xFF0E0E12),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
+        centerTitle: false,
+        title: (_isSearching && context.isMobile)? null
+        : Padding(
+          padding: EdgeInsets.only(left: context.isMobile? 0:8),
+          child: Text("MY TOURNAMENTS", style: TextStyle(fontSize: context.isMobile? 20: 24, fontWeight: FontWeight.w900)),
+        ),
+        actions: [
+          if(context.isMobile) _isSearching?_buildMobileSearchBar()
+          : IconButton(
+            icon: Icon(Icons.search, color: Colors.white),
+            onPressed: () {
+              setState(() {
+                _isSearching = true;
+              });
+            },
+          ),
+          if(!context.isMobile) Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: SizedBox(
+              width: 300,
+              height: 35,
+              child: Row(
+                children: [
+                  Expanded(child: _buildSearchField()),
+                  InkWell(
+                    borderRadius: BorderRadius.circular(2),
+                    onTap: _handleSearch,
+                    child: Container(
+                      width: 35,
+                      height: double.infinity,
+                      decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(2),
-                        onTap: _handleSearch,
-                        child: Container(
-                          width: 35,
-                          height: double.infinity,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(2),
-                            color: Colors.white
-                          ),
-                          child: Icon(Icons.search, color: const Color(0xFF1E1E24)),
-                        ),
+                        color: Colors.white
                       ),
-                      const SizedBox(width: 10)
-                    ],
-                  )
-                ),
-              ),
-              buildProfileOrLogin(context, loggedIn, user)
-            ],
-          ),
-          body: RefreshIndicator(
-            onRefresh: _onRefresh,
-            color: Colors.blueAccent,
-            child: (filteredList.isEmpty && !_isLoading)? _buildEmptyState(fullEmpty: fullEmpty)
-            :ListView.builder(
-              controller: _scrollController,
-              itemCount: filteredList.length + (_hasMore? 1 : 0),
-              padding: const EdgeInsets.all(16),
-              physics: const AlwaysScrollableScrollPhysics(),
-              itemBuilder: (context, index){
-                if (index < filteredList.length){
-                  var data = filteredList[index].data() as Map<String, dynamic>;
-                  return _buildTournamentCard(context, data);
-                }
-                else{
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 32.0),
-                    child: Center(
-                      child: _hasMore? const CircularProgressIndicator(color: Colors.blueAccent)
-                      : const Text("No more tournaments", style: TextStyle(color: Colors.white24)),
+                      child: Icon(Icons.search, color: const Color(0xFF1E1E24)),
                     ),
-                  );
-                }
-              },
+                  ),
+                  const SizedBox(width: 10)
+                ],
+              )
             ),
           ),
-          bottomNavigationBar: (context.isMobile)? _buildMobileSearchBar(): null,
-        );
-      }
+          buildProfileOrLogin(context)
+        ],
+      ),
+      body: RefreshIndicator(
+        onRefresh: _onRefresh,
+        color: Colors.blueAccent,
+        child: (_tournaments.isEmpty && !_isLoading)? _buildEmptyState(fullEmpty: fullEmpty)
+        :ListView.builder(
+          controller: _scrollController,
+          itemCount: _tournaments.length + (_hasMore? 1 : 0),
+          padding: const EdgeInsets.all(16),
+          physics: const AlwaysScrollableScrollPhysics(),
+          itemBuilder: (context, index){
+            if (index < _tournaments.length){
+              var doc = _tournaments[index];
+              var data = doc.data() as Map<String, dynamic>;
+
+              return _buildTournamentCard(context, data, doc.id);
+            }
+            else{
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 32.0),
+                child: Center(
+                  child: _hasMore? const CircularProgressIndicator(color: Colors.blueAccent)
+                  : const Text("No more tournaments", style: TextStyle(color: Colors.white24)),
+                ),
+              );
+            }
+          },
+        ),
+      ),
     );
   }
 
-  Widget _buildTournamentCard(BuildContext context, Map<String, dynamic> data){
+  Widget _buildTournamentCard(BuildContext context, Map<String, dynamic> data, String tournamentId){
     String dateStr = "Recently Created";
     if(data['createdAt'] != null){
       DateTime dt = (data['createdAt'] as Timestamp).toDate();
@@ -307,7 +312,7 @@ class _MyTournamentState extends State<MyTournament> {
                   ),
                 ),
               onTap: () async{
-                await Navigator.push(context, MaterialPageRoute(builder: (context) => TournamentDashboard(tournamentId: data['tournament_id'])),);
+                await Navigator.push(context, MaterialPageRoute(builder: (context) => TournamentDashboard(tournamentId: tournamentId)),);
                 _onRefresh();
               },
             ),
@@ -337,9 +342,8 @@ class _MyTournamentState extends State<MyTournament> {
                 icon: Icon(Icons.close, color: Colors.white),
                 onPressed: (){
                   _searchController.clear();
-                  setState(() {
-                    _searchQuery = "";
-                  });
+                  setState(() => _searchQuery = "");
+                  _onRefresh();
                 },
               )
             : const SizedBox.shrink();
@@ -356,40 +360,32 @@ class _MyTournamentState extends State<MyTournament> {
   }
 
   Widget _buildMobileSearchBar(){
-    return Transform.translate(
-      offset: Offset(0, -MediaQuery.of(context).viewInsets.bottom),
-      child: BottomAppBar(
-        color: Colors.transparent,
-        elevation: 0,
-        height: 85,
-        padding: EdgeInsets.fromLTRB(10, 15, 10, 20),
-        child: Align(
-          alignment: Alignment.topLeft,
-          child: SizedBox(
-            width: 300,
-            height: 35,
-            child: Row(
-              children: [
-                Expanded(child: _buildSearchField()),
-                InkWell(
-                  borderRadius: BorderRadius.circular(2),
-                  onTap: _handleSearch,
-                  child: Container(
-                    width: 35,
-                    height: double.infinity,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(2),
-                      color: Colors.white
-                    ),
-                    child: Icon(Icons.search, color: const Color(0xFF1E1E24)),
-                  ),
-                ),
-                const SizedBox(width: 10)
-              ],
-            )
+    return SizedBox(
+      width: 300,
+      height: 35,
+      child: Row(
+        children: [
+          IconButton(
+            icon: Icon(Icons.close, size: 20),
+            onPressed: () => setState(() => _isSearching = false),
           ),
-        ),
-      ),
+          Expanded(child: _buildSearchField()),
+          InkWell(
+            borderRadius: BorderRadius.circular(2),
+            onTap: _handleSearch,
+            child: Container(
+              width: 35,
+              height: double.infinity,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(2),
+                color: Colors.white
+              ),
+              child: Icon(Icons.search, color: const Color(0xFF1E1E24)),
+            ),
+          ),
+          const SizedBox(width: 10)
+        ],
+      )
     );
   }
 

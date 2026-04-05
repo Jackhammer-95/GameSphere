@@ -9,6 +9,8 @@ import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:typed_data';
 
+import 'package:provider/provider.dart';
+
 class ManageParticipants extends StatefulWidget {
   final Map<String, dynamic> data;
   final PageController settingsPageController;
@@ -23,8 +25,8 @@ class ManageParticipants extends StatefulWidget {
 class _ManageParticipantsState extends State<ManageParticipants> {
   final TextEditingController _idController = TextEditingController();
   final TextEditingController _nameController = TextEditingController();
-  String? selectedFlag;
-  String? selectedCountry;
+  String? _selectedflag;
+  String? _selectedCountry;
   File? _tempImage;
   Uint8List? _tempWebImage;
   bool _isDialogLoading = false;
@@ -139,58 +141,70 @@ class _ManageParticipantsState extends State<ManageParticipants> {
                     bool canEdit = isEmptySlot || (participant['imported'] == false);
                 
                     return DataRow(cells: [
-                      DataCell(ConstrainedBox(
-                        constraints: BoxConstraints(maxWidth: min(400, context.screenWidth*0.95)),
-                        child: Row(
-                          children: [
-                            const SizedBox(width: 8),
-                            (_showLogo)? SizedBox(
-                              height: 30,
-                              width: 30,
-                              child:(!isEmptySlot && participant['logo_url'] != null)
-                              ? Image.network(participant['logo_url'], fit: BoxFit.contain)
-                              : Icon(Icons.shield, color: isEmptySlot? Colors.white38:Colors.white)
-                            )
-                            :(!isEmptySlot && _showCountry)? Text(participant['flag'] ?? "", style: TextStyle(fontSize: 16))
-                            : const SizedBox.shrink(),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: SingleChildScrollView(scrollDirection: Axis.horizontal,
-                                child: Container(
-                                  constraints: BoxConstraints(minWidth: 100),
-                                  child: Text(
-                                    isEmptySlot? "Empty slot"
-                                    :"${participant['team_name']} ${(!isEmptySlot && _showCountry && _showLogo)? (participant['flag'] ?? "") : ""}",
-                                    textAlign: TextAlign.start,
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(color: isEmptySlot? Colors.white38:Colors.white, fontSize: 16)
-                                  )
-                                )
-                              ),
-                            ),
-                            Row(
-                              mainAxisSize: MainAxisSize.min,
+                      DataCell((isEmptySlot || participant['team_id'] == null)? _buildEmptySlot(groupName, index, isEmptySlot):
+                      StreamBuilder<DocumentSnapshot>(
+                        stream: FirebaseFirestore.instance.collection('teams').doc(participant['team_id']).snapshots(),
+                        builder: (context, teamSnapshot) {
+                          if(!teamSnapshot.hasData) return const SizedBox(height: 30, child: LinearProgressIndicator());
+
+                          var teamData = teamSnapshot.data!.data() as Map<String, dynamic>?;
+
+                          String team_name = teamData?['name']?? "Unknown team";
+                          String? logo = teamData?['logo_url'];
+                          String? flag = teamData?['flag'];
+                          return ConstrainedBox(
+                            constraints: BoxConstraints(maxWidth: min(400, context.screenWidth*0.95)),
+                            child: Row(
                               children: [
-                                if(canEdit)IconButton(
-                                  padding: EdgeInsets.zero,
-                                  icon: const Icon(Icons.edit, color: Colors.blueAccent),
-                                  onPressed:() {
-                                    _clearDialogData();
-                                    _showAddTeamDialog(groupName.codeUnitAt(0)-65, index, isEmptySlot);
-                                    },
+                                const SizedBox(width: 8),
+                                (_showLogo)? SizedBox(
+                                  height: 30,
+                                  width: 30,
+                                  child:(logo != null)
+                                  ? Image.network(logo, fit: BoxFit.contain)
+                                  : Icon(Icons.shield, color: Colors.white)
+                                )
+                                :(_showCountry)? Text(flag ?? "", style: TextStyle(fontSize: 16))
+                                : const SizedBox.shrink(),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: SingleChildScrollView(scrollDirection: Axis.horizontal,
+                                    child: Container(
+                                      constraints: BoxConstraints(minWidth: 100),
+                                      child: Text(
+                                        "$team_name ${(_showCountry && _showLogo)? (flag ?? "") : ""}",
+                                        textAlign: TextAlign.start,
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(color: Colors.white, fontSize: 16)
+                                      )
+                                    )
+                                  ),
                                 ),
-                                if(!isEmptySlot)IconButton(
-                                  padding: EdgeInsets.zero,
-                                  constraints: const BoxConstraints(),
-                                  icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
-                                  onPressed: () => confirmDeleteTeam(context, participant['team_name'], participant.id),
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    if(canEdit)IconButton(
+                                      padding: EdgeInsets.zero,
+                                      icon: const Icon(Icons.edit, color: Colors.blueAccent),
+                                      onPressed:() {
+                                        _clearDialogData();
+                                        _showAddTeamDialog(groupName.codeUnitAt(0)-65, index, isEmptySlot);
+                                        },
+                                    ),
+                                    IconButton(
+                                      padding: EdgeInsets.zero,
+                                      constraints: const BoxConstraints(),
+                                      icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                                      onPressed: () => confirmDeleteTeam(context, team_name, participant.id),
+                                    ),
+                                    if(!context.isMobile) const SizedBox(width: 8)
+                                  ],
                                 ),
-                                if(!context.isMobile) const SizedBox(width: 8)
                               ],
                             ),
-                          ],
-                        ),
+                          );
+                        }
                       )),
                     ]);
                   }),
@@ -237,12 +251,12 @@ class _ManageParticipantsState extends State<ManageParticipants> {
                                   _isDialogLoading? const CircularProgressIndicator()
                                   : ElevatedButton(
                                     style: ElevatedButton.styleFrom(
-                                        backgroundColor: Theme.of(context).colorScheme.primary,
-                                        foregroundColor: Colors.white,
-                                      ),
-                                      onPressed: () => _importTeam(groupIndex, slotIndex, setDialogState),
-                                      child: const Text("Assign", style: TextStyle(fontWeight: FontWeight.bold)),
+                                      backgroundColor: Theme.of(context).colorScheme.primary,
+                                      foregroundColor: Colors.white,
                                     ),
+                                    onPressed: () => _importTeam(groupIndex, slotIndex, setDialogState),
+                                    child: const Text("Assign", style: TextStyle(fontWeight: FontWeight.bold)),
+                                  ),
                                 ],
                               ),
                             ),
@@ -265,12 +279,12 @@ class _ManageParticipantsState extends State<ManageParticipants> {
                                           onSelect: (Country country){
                                             setDialogState(() {
                                               if(country.countryCode == 'PS'){
-                                                selectedCountry = "Palestine";
+                                                _selectedCountry = "Palestine";
                                               }
                                               else{
-                                                selectedCountry = country.name;
+                                                _selectedCountry = country.name;
                                               }
-                                              selectedFlag = country.flagEmoji;
+                                              _selectedflag = country.flagEmoji;
                                             });
                                           },
                                           countryListTheme: CountryListThemeData(
@@ -302,9 +316,9 @@ class _ManageParticipantsState extends State<ManageParticipants> {
                                         child: Row(
                                           spacing: 5,
                                           children: [
-                                            Text(selectedFlag?? "🌍", style: const TextStyle(fontSize: 24)),
+                                            Text(_selectedflag?? "🌍", style: const TextStyle(fontSize: 24)),
                                             Text(
-                                              selectedCountry?? "Select country",
+                                              _selectedCountry?? "Select country",
                                               style: const TextStyle(color: Colors.white, fontSize: 16),
                                             ),
                                             Spacer(),
@@ -338,6 +352,41 @@ class _ManageParticipantsState extends State<ManageParticipants> {
           );
         },
       )
+    );
+  }
+
+  Widget _buildEmptySlot(String groupName, int index, bool isEmptySlot) {
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxWidth: min(400, context.screenWidth * 0.95)),
+      child: Row(
+        children: [
+          const SizedBox(width: 8),
+          SizedBox(
+            height: 30,
+            width: 30,
+            child: Icon(Icons.shield, color: Colors.white38, size: 24),
+          ),
+          const SizedBox(width: 10),
+          const Expanded(
+            child: Text(
+              "Empty slot",
+              style: TextStyle(
+                color: Colors.white38, 
+                fontSize: 16, 
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ),
+          IconButton(
+            padding: EdgeInsets.zero,
+            icon: const Icon(Icons.edit, color: Colors.blueAccent),
+            onPressed:() {
+              _clearDialogData();
+              _showAddTeamDialog(groupName.codeUnitAt(0)-65, index, isEmptySlot);
+            },
+          ),
+        ],
+      ),
     );
   }
 
@@ -448,8 +497,7 @@ class _ManageParticipantsState extends State<ManageParticipants> {
       var teamDoc = await FirebaseFirestore.instance.collection('teams').doc(teamId).get();
 
       if (teamDoc.exists) {
-        Map<String, dynamic> teamData = teamDoc.data() as Map<String, dynamic>;
-        await _saveParticipant(group, slot, teamDoc.id, true, teamData);
+        await _saveParticipant(group, slot, teamDoc.id, true);
         if(mounted) Navigator.pop(context);
       }
       else {
@@ -474,6 +522,16 @@ class _ManageParticipantsState extends State<ManageParticipants> {
   // create
   Future<void> _createNewTeam(int group, int slot, StateSetter setDialogState) async {
     if (_nameController.text.isEmpty) return;
+
+    final String currentUserUid = Provider.of<UserProvider>(context, listen: false).uid;
+
+    if (currentUserUid.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("You must be logged in to create a team.", style: TextStyle(color: Colors.white)), backgroundColor: Color(0xFF1E1E24))
+      );
+      return;
+    }
+
     setDialogState(() => _isDialogLoading = true);
 
     try {
@@ -497,18 +555,15 @@ class _ManageParticipantsState extends State<ManageParticipants> {
 
       DocumentReference newTeam = await FirebaseFirestore.instance.collection('teams').add({
         'name': _nameController.text.trim(),
+        'name_lowercase': _nameController.text.toLowerCase().trim(),
         'logo_url': logoUrl,
         'created_at': FieldValue.serverTimestamp(),
-        'country': selectedCountry,
-        'flag': selectedFlag,
+        'country': _selectedCountry,
+        'flag': _selectedflag,
+        'admins': [currentUserUid],
       });
 
-      await _saveParticipant(group, slot, newTeam.id, false, {
-        'name': _nameController.text.trim(),
-        'logo_url': logoUrl,
-        'country': selectedCountry,
-        'flag': selectedFlag,
-      });
+      await _saveParticipant(group, slot, newTeam.id, false);
 
       if(mounted) Navigator.pop(context);
     } catch(e){
@@ -523,16 +578,12 @@ class _ManageParticipantsState extends State<ManageParticipants> {
 
 
   // Save
-  Future<void> _saveParticipant(int groupIndex, int slotIndex, String teamId, bool imported, Map<String, dynamic> teamData) async {
+  Future<void> _saveParticipant(int groupIndex, int slotIndex, String teamId, bool imported) async {
     String groupName = String.fromCharCode(65 + groupIndex);
     String slotId = "Group${groupName}_Slot$slotIndex";
 
     await FirebaseFirestore.instance.collection('tournaments').doc(widget.tournamentId).collection('participants').doc(slotId).set({
     'team_id': teamId,
-    'team_name': teamData['name'],
-    'logo_url': teamData['logo_url'],
-    'country': teamData['country'],
-    'flag': teamData['flag'],
     'group': groupName,
     'slot_index': slotIndex,
     'played': 0,
@@ -553,8 +604,8 @@ class _ManageParticipantsState extends State<ManageParticipants> {
     _nameController.clear();
     _tempImage = null;
     _tempWebImage = null;
-    selectedFlag = null;
-    selectedCountry = null;
+    _selectedflag = null;
+    _selectedCountry = null;
   }
 
 
