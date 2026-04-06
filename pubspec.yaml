@@ -81,6 +81,9 @@ flutter:
     - Assets/images/Homepage_extended_GameSphere.jpg
     - Assets/videos/boba_1080_background_GameSphere.mp4
     - Assets/videos/HD_homeBG_GameSphere.mp4
+    - Assets/images/Group_only.png
+    - Assets/images/Mix_format.png
+    - Assets/images/Playoffs_format.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

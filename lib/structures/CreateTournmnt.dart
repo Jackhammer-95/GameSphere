@@ -29,16 +29,16 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
   
   final List<Map<String, dynamic>> _formats = [
     {
-      'title': 'Group Phase only', 
-      'image': 'Assets/images/Homepage_extended_GameSphere.jpg',
+      'title': 'Group Phase only',
+      'image': 'Assets/images/Group_only.png',
     },
     {
       'title': 'Group Phase & Knockout Phase',
-      'image': 'Assets/images/Homepage_extended_GameSphere.jpg',
+      'image': 'Assets/images/Mix_format.png',
     },
     {
-      'title': 'Knockout Phase only', 
-      'image': 'Assets/images/Homepage_extended_GameSphere.jpg', 
+      'title': 'Knockout Phase only',
+      'image': 'Assets/images/Playoffs_format.png',
     },
   ];
 

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:gamesphere/TheProvider.dart';
+import 'package:gamesphere/structures/Team%20Profile/TeamProfile.dart';
 import 'package:provider/provider.dart';
-import 'package:gamesphere/structures/TeamProfile.dart';
 import 'package:gamesphere/widgets/ProfileDialog.dart';
 
 class SearchTeamPage extends StatefulWidget {
@@ -70,7 +70,7 @@ class _SearchTeamPageState extends State<SearchTeamPage> {
         .where('name_lowercase', isLessThanOrEqualTo: '$_searchQuery\uf8ff').orderBy('name_lowercase');
       }
       else{
-        query = query.orderBy('created_at', descending: true);
+        query = query.orderBy('created_at');
       }
 
       if(_lastDocument != null){

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:gamesphere/Login_actions/LoginPage.dart';
+import 'package:gamesphere/ProfileZone/ProfileDashboard.dart';
 import 'package:gamesphere/TheProvider.dart';
-import 'package:gamesphere/screens/ProfileDashboard.dart';
 import 'package:provider/provider.dart';
 
 Widget buildProfileOrLogin(BuildContext context){
