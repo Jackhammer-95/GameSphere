@@ -464,10 +464,10 @@ class _ExplorePageState extends State<ExplorePage> {
                 
                   final userProvider = Provider.of<UserProvider>(context, listen: false);
                   final List admins = data['admins'] ?? [];
-                  final bool amIAdmin = admins.contains(userProvider.uid);
+                  final bool amIAdmin = admins.contains(userProvider.uid) || (userProvider.role == "superAdmin");
                   final bool isPrivate = data['is_private'] ?? false;
 
-                  if(isPrivate && !amIAdmin){
+                  if(isPrivate && !amIAdmin) {
                     _showEnterPasswordDialog(context, data['tournament_id'], data['password']);
                   }
                   else {

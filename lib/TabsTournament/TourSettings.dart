@@ -275,6 +275,7 @@ class _SettingsTabState extends State<SettingsTab> {
 
       await FirebaseFirestore.instance.collection('tournaments').doc(widget.tournamentId).update({
         'title': _titleController.text.trim(),
+        'title_lowercase': _titleController.text.trim().toLowerCase(),
         'host_name': _hostController.text.trim(),
         'description': _descController.text.trim(),
         'password': _passwordController.text.trim(),

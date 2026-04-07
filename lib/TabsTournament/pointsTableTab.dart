@@ -87,7 +87,7 @@ class _buildPointsTableTabState extends State<buildPointsTableTab>{
                                   : Icon(Icons.shield, color: Colors.white38)
                                 ),
                                 const SizedBox(width: 5),
-                                SizedBox(width: 150, child: SingleChildScrollView(scrollDirection: Axis.horizontal,
+                                SizedBox(width: context.isMobile? 130 :140, child: SingleChildScrollView(scrollDirection: Axis.horizontal,
                                   child: Text(team['team_name'], style: const TextStyle(color: Colors.white)),
                                 )),
                               ],

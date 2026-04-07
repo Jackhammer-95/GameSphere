@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:gamesphere/TabsTournament/AskAI.dart';
 import 'package:gamesphere/TabsTournament/Knockout.dart';
@@ -8,6 +7,7 @@ import 'package:gamesphere/TabsTournament/pointsTableTab.dart';
 import 'package:gamesphere/TabsTournament/InfoTab.dart';
 import 'package:gamesphere/TheProvider.dart';
 import 'package:gamesphere/widgets/ProfileDialog.dart';
+import 'package:provider/provider.dart';
 
 class TournamentDashboard extends StatefulWidget {
   final String tournamentId;
@@ -19,10 +19,11 @@ class TournamentDashboard extends StatefulWidget {
 }
 
 class _TournamentDashboardState extends State<TournamentDashboard>{
-  final String? userUid = FirebaseAuth.instance.currentUser?.uid;
 
   @override
   Widget build(BuildContext context) {
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    
     return StreamBuilder<DocumentSnapshot>(
       stream: FirebaseFirestore.instance.collection('tournaments').doc(widget.tournamentId).snapshots(),
       builder: (context, snapshot) {
@@ -32,7 +33,7 @@ class _TournamentDashboardState extends State<TournamentDashboard>{
         if(!snapshot.hasData || !snapshot.data!.exists) return const Scaffold(backgroundColor: Color(0xFF0E0E12), body: Center(child: CircularProgressIndicator()));
 
         var data = snapshot.data!.data() as Map<String, dynamic>;
-        bool isAdmin = (data['admins'] as List).contains(userUid);
+        bool isAdmin = (data['admins'] as List).contains(userProvider.uid) || (userProvider.role == "superAdmin");
         int format = data['format_index'];
 
         int tabCount = 5;
@@ -57,7 +58,7 @@ class _TournamentDashboardState extends State<TournamentDashboard>{
                   if(format != 2)buildPointsTableTab(data: data),
                   if(format != 0)buildKnockoutTab(),
                   buildAskAiTab(),
-                  if(isAdmin) SettingsTab(tournamentId: widget.tournamentId, data: data, userId: userUid,),
+                  if(isAdmin) SettingsTab(tournamentId: widget.tournamentId, data: data, userId: userProvider.uid),
                 ],
               ),
             ),

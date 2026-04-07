@@ -57,6 +57,7 @@ class _TournamentSettingsPageState extends State<TournamentSettingsPage>{
       Map<String, dynamic> tournamentData = {
         'tournament_id': tournamentId,
         'title': widget.title,
+        'title_lowercase': widget.title.toLowerCase(),
         'host_name': widget.hostname,
         'description': widget.description,
         'sport': widget.sport,
