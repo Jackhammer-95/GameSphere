@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:gamesphere/TabsTournament/AskAI.dart';
+import 'package:gamesphere/TabsTournament/FixtureTab.dart';
 import 'package:gamesphere/TabsTournament/Knockout.dart';
 import 'package:gamesphere/TabsTournament/TourSettings.dart';
 import 'package:gamesphere/TabsTournament/pointsTableTab.dart';
@@ -54,7 +55,7 @@ class _TournamentDashboardState extends State<TournamentDashboard>{
                 physics: const NeverScrollableScrollPhysics(),
                 children: [
                   buildInfoTab(context, data),
-                  _buildFixturesTab(),
+                  FixturesTab(tournamentId: widget.tournamentId, tournamentData: data),
                   if(format != 2)buildPointsTableTab(data: data),
                   if(format != 0)buildKnockoutTab(),
                   buildAskAiTab(),
@@ -174,62 +175,6 @@ class _TournamentDashboardState extends State<TournamentDashboard>{
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildFixturesTab() {
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: 5, // Placeholder for match list
-      itemBuilder: (context, index) {
-        return _matchCard();
-      },
-    );
-  }
-
-  Widget _matchCard() {
-    return Align(
-      alignment: Alignment.topCenter,
-      child: Container(
-        constraints: BoxConstraints(maxWidth: 1200),
-        margin: const EdgeInsets.only(bottom: 12),
-        padding:context.isMobile? const EdgeInsets.symmetric(vertical: 16, horizontal: 0) :const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: const Color(0xFF1E1E24),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white.withOpacity(0.05)),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            _teamInfo("REAL MADRID", Icons.shield),
-            SizedBox(height: 50, width: 50, child: Text("0", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 40))),
-            const SizedBox(width: 10),
-            Column(
-              children: [
-                const Text("VS", style: TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 4),
-                Text("21:45", style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 12)),
-              ],
-            ),
-            SizedBox(height: 50, width: 50, child: Text("0", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 40))),
-            const SizedBox(width: 10),
-            _teamInfo("INTER MIAMI", Icons.shield),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _teamInfo(String name, IconData icon) {
-    return Expanded(
-      child: Column(
-        children: [
-          Icon(icon, color: Colors.white24, size: 40),
-          const SizedBox(height: 8),
-          Text(name, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
-        ],
       ),
     );
   }

@@ -254,7 +254,7 @@ class _ManageParticipantsState extends State<ManageParticipants> {
                                       backgroundColor: Theme.of(context).colorScheme.primary,
                                       foregroundColor: Colors.white,
                                     ),
-                                    onPressed: () => _importTeam(groupIndex, slotIndex, setDialogState),
+                                    onPressed: () => _importTeam(groupIndex, slotIndex, setDialogState, isEmptySlot),
                                     child: const Text("Assign", style: TextStyle(fontWeight: FontWeight.bold)),
                                   ),
                                 ],
@@ -334,7 +334,7 @@ class _ManageParticipantsState extends State<ManageParticipants> {
                                           backgroundColor: Theme.of(context).colorScheme.primary,
                                           foregroundColor: Colors.white,
                                         ),
-                                        onPressed: () => _createNewTeam(groupIndex, slotIndex, setDialogState),
+                                        onPressed: () => _createNewTeam(groupIndex, slotIndex, setDialogState, isEmptySlot),
                                         child: const Text("Assign", style: TextStyle(fontWeight: FontWeight.bold)),
                                       ),
                                   ],
@@ -361,7 +361,7 @@ class _ManageParticipantsState extends State<ManageParticipants> {
       child: Row(
         children: [
           const SizedBox(width: 8),
-          SizedBox(
+          if(_showLogo) SizedBox(
             height: 30,
             width: 30,
             child: Icon(Icons.shield, color: Colors.white38, size: 24),
@@ -474,7 +474,7 @@ class _ManageParticipantsState extends State<ManageParticipants> {
 
 
   //import
-  Future<void> _importTeam(int group, int slot, StateSetter setDialogState) async{
+  Future<void> _importTeam(int group, int slot, StateSetter setDialogState, bool isEmptySlot) async{
     String teamId = _idController.text.trim();
     if (teamId.isEmpty) return;
 
@@ -486,9 +486,7 @@ class _ManageParticipantsState extends State<ManageParticipants> {
 
       if (duplicateCheck.docs.isNotEmpty) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("This team is already registered in this tournament!", style: TextStyle(color: Colors.white)), backgroundColor: Color(0xFF1E1E24)),
-          );
+          _showSnackBar("This team is already registered in this tournament!");
         }
         Navigator.pop(context);
         return;
@@ -497,20 +495,16 @@ class _ManageParticipantsState extends State<ManageParticipants> {
       var teamDoc = await FirebaseFirestore.instance.collection('teams').doc(teamId).get();
 
       if (teamDoc.exists) {
-        await _saveParticipant(group, slot, teamDoc.id, true);
+        await _saveParticipant(group, slot, teamDoc.id, true, isEmptySlot);
         if(mounted) Navigator.pop(context);
       }
       else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Team not found.", style: TextStyle(color: Colors.white)), backgroundColor: Color(0xFF1E1E24))
-        );
+        _showSnackBar("Team not found.");
         Navigator.pop(context);
       }
     }
     catch(e){
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Something went wrong.", style: TextStyle(color: Colors.white)), backgroundColor: Color(0xFF1E1E24))
-      );
+      _showSnackBar("Something went wrong.");
       Navigator.pop(context);
     }
     finally {
@@ -520,7 +514,7 @@ class _ManageParticipantsState extends State<ManageParticipants> {
 
 
   // create
-  Future<void> _createNewTeam(int group, int slot, StateSetter setDialogState) async {
+  Future<void> _createNewTeam(int group, int slot, StateSetter setDialogState, bool isEmptySlot) async {
     if (_nameController.text.isEmpty) return;
 
     final String currentUserUid = Provider.of<UserProvider>(context, listen: false).uid;
@@ -563,7 +557,7 @@ class _ManageParticipantsState extends State<ManageParticipants> {
         'admins': [currentUserUid],
       });
 
-      await _saveParticipant(group, slot, newTeam.id, false);
+      await _saveParticipant(group, slot, newTeam.id, false, isEmptySlot);
 
       if(mounted) Navigator.pop(context);
     } catch(e){
@@ -578,11 +572,16 @@ class _ManageParticipantsState extends State<ManageParticipants> {
 
 
   // Save
-  Future<void> _saveParticipant(int groupIndex, int slotIndex, String teamId, bool imported) async {
+  Future<void> _saveParticipant(int groupIndex, int slotIndex, String teamId, bool imported, bool isEmptySlot) async {
     String groupName = String.fromCharCode(65 + groupIndex);
     String slotId = "Group${groupName}_Slot$slotIndex";
 
-    await FirebaseFirestore.instance.collection('tournaments').doc(widget.tournamentId).collection('participants').doc(slotId).set({
+    DocumentReference tournamentRef = FirebaseFirestore.instance.collection('tournaments').doc(widget.tournamentId);
+    DocumentReference participantRef = tournamentRef.collection('participants').doc(slotId);
+
+    WriteBatch batch = FirebaseFirestore.instance.batch();
+
+    batch.set(participantRef, {
     'team_id': teamId,
     'group': groupName,
     'slot_index': slotIndex,
@@ -597,6 +596,14 @@ class _ManageParticipantsState extends State<ManageParticipants> {
     'imported': imported,
     'added_at': FieldValue.serverTimestamp(),
     });
+
+    if(isEmptySlot) {
+      batch.update(tournamentRef, {
+        'participant_count': FieldValue.increment(1),
+      });
+    }
+
+    await batch.commit();
   }
 
   void _clearDialogData() {
@@ -687,11 +694,23 @@ class _ManageParticipantsState extends State<ManageParticipants> {
   }
 
   Future<void> _deleteParticipant(String slotId) async {
-    await FirebaseFirestore.instance
-        .collection('tournaments')
-        .doc(widget.tournamentId)
-        .collection('participants')
-        .doc(slotId)
-        .delete();
+    DocumentReference tournamentRef = FirebaseFirestore.instance.collection('tournaments').doc(widget.tournamentId);
+    DocumentReference participantRef = tournamentRef.collection('participants').doc(slotId);
+
+    WriteBatch batch = FirebaseFirestore.instance.batch();
+
+    batch.delete(participantRef);
+
+    batch.update(tournamentRef, {
+      'participant_count': FieldValue.increment(-1),
+    });
+
+    await batch.commit();
+  }
+
+  void _showSnackBar(String text) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(text, style: const TextStyle(color: Colors.white)), backgroundColor: const Color(0xFF1E1E24))
+    );
   }
 }

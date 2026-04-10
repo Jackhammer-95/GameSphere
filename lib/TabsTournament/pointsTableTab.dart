@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:gamesphere/TheProvider.dart';
+import 'package:gamesphere/structures/Team%20Profile/TeamProfile.dart';
 
 class buildPointsTableTab extends StatefulWidget {
   final Map<String, dynamic> data;
@@ -15,6 +16,12 @@ class _buildPointsTableTabState extends State<buildPointsTableTab>{
 
   @override
   Widget build(BuildContext context){
+    int participantCount = widget.data['participant_count'] ?? 0;
+
+    if (participantCount == 0) {
+      return _buildEmptySection();
+    }
+
     int groupCount = widget.data['no_of_groups'] ?? 0;
 
     return ListView.builder(
@@ -50,7 +57,7 @@ class _buildPointsTableTabState extends State<buildPointsTableTab>{
       .where('group', isEqualTo: groupidentifier).orderBy('points', descending: true).orderBy('difference', descending: true)
       .orderBy('scored', descending: true).orderBy('slot_index', descending: false).snapshots(),
       builder: (context, snapshot) {
-        if(!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+        if(!snapshot.hasData || snapshot.data!.docs.isEmpty) return const SizedBox.shrink();
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.center,
@@ -72,25 +79,47 @@ class _buildPointsTableTabState extends State<buildPointsTableTab>{
                         DataColumn(label: SizedBox(width: 150, child: Text("TEAM NAME", textAlign: TextAlign.center))),
                       ],
                       rows: List.generate(snapshot.data!.docs.length, (index) {
-                        var team = snapshot.data!.docs[index];
+                        var participant = snapshot.data!.docs[index];
+                        String teamId = participant['team_id'];
                         
                         return DataRow(
                           cells: [
-                            DataCell(Row(
-                              children: [
-                                Text("${index + 1} ", style: const TextStyle(color: Colors.grey)),
-                                SizedBox(
-                                  height: 30,
-                                  width: 30,
-                                  child:(team['logo_url'] != null)
-                                  ? Image.network(team['logo_url'], fit: BoxFit.contain)
-                                  : Icon(Icons.shield, color: Colors.white38)
-                                ),
-                                const SizedBox(width: 5),
-                                SizedBox(width: context.isMobile? 130 :140, child: SingleChildScrollView(scrollDirection: Axis.horizontal,
-                                  child: Text(team['team_name'], style: const TextStyle(color: Colors.white)),
-                                )),
-                              ],
+                            DataCell(StreamBuilder<DocumentSnapshot>(
+                              stream: FirebaseFirestore.instance.collection('teams').doc(teamId).snapshots(),
+                              builder: (context, teamSnapshot) {
+                                String teamName = "Loading...";
+                                String? logoUrl;
+
+                                if (teamSnapshot.hasData && teamSnapshot.data!.exists) {
+                                  var teamData = teamSnapshot.data!.data() as Map<String, dynamic>;
+                                  teamName = teamData['name'] ?? "Unknown Team";
+                                  logoUrl = teamData['logo_url'];
+                                }
+
+                                return Row(
+                                  children: [
+                                    Text("${index + 1} ", style: const TextStyle(color: Colors.grey)),
+                                    SizedBox(
+                                      height: 30,
+                                      width: 30,
+                                      child:(logoUrl != null && logoUrl.isNotEmpty)
+                                      ? Image.network(logoUrl, fit: BoxFit.contain)
+                                      : const Icon(Icons.shield, color: Colors.white38)
+                                    ),
+                                    const SizedBox(width: 5),
+                                    InkWell(
+                                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => TeamDashboard(teamId: teamId))),
+                                      child: SizedBox(
+                                        width: context.isMobile? 130 :140,
+                                        child: SingleChildScrollView(
+                                          scrollDirection: Axis.horizontal,
+                                          child: Text(teamName, style: const TextStyle(color: Colors.white)),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              }
                             )),
                           ]
                         );
@@ -142,6 +171,19 @@ class _buildPointsTableTabState extends State<buildPointsTableTab>{
           ],
         );
       }
+    );
+  }
+
+  Widget _buildEmptySection(){
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.format_list_numbered, size: 100, color: Colors.white.withOpacity(0.05)),
+          const SizedBox(height: 20),
+          const Text("ADD PARTICIPANTS TO SEE STANDINGS", style: TextStyle(color: Colors.white24)),
+        ],
+      ),
     );
   }
 }

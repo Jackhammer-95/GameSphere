@@ -145,6 +145,7 @@ class UserProvider extends ChangeNotifier {
 }
 
 
-// profile: banner, liked sports
-// only keep team id in tournament participants, all searchable page modify,
-//  
+// profile: banner
+// Fixture backend, AI integrate, knockout bracket
+// ParticipantTab fix for knockout only, notification/announcement, interested button
+// showcase, Admin permission, squad add permission

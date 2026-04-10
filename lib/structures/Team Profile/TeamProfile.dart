@@ -30,7 +30,6 @@ class _TeamDashboardState extends State<TeamDashboard> with TickerProviderStateM
   final TextEditingController _emailEditController = TextEditingController();
   String? _selectedFlag;
   String? _selectedCountry;
-  
 
   @override
   void initState() {
@@ -72,14 +71,15 @@ class _TeamDashboardState extends State<TeamDashboard> with TickerProviderStateM
           child: StreamBuilder<DocumentSnapshot>(
             stream: FirebaseFirestore.instance.collection('teams').doc(widget.teamId).snapshots(),
             builder: (context, snapshot) {
-              if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+              if (!snapshot.hasData || !snapshot.data!.exists) return const Center(child: CircularProgressIndicator());
+              if (snapshot.hasError) return const SizedBox.shrink();
               
               var teamData = snapshot.data!.data() as Map<String, dynamic>;
 
               final userProv = Provider.of<UserProvider>(context, listen: false);
 
               List admins = teamData['admins']?? [];
-              bool isTeamAdmin = admins.contains(userProv.uid);
+              bool isTeamAdmin = admins.contains(userProv.uid) || (userProv.role == "superAdmin");
           
               return Column(
                 children: [
@@ -170,9 +170,9 @@ class _TeamDashboardState extends State<TeamDashboard> with TickerProviderStateM
                 const SizedBox(height: 5),
                 Row(
                   children: [
-                    Text(data['flag'] ?? "", style: const TextStyle(fontSize: 18)),
+                    Text((data['flag'] != null && data['flag'] != "🌍")? data['flag'] :"", style: const TextStyle(fontSize: 18)),
                     const SizedBox(width: 8),
-                    Text(data['country'] ?? "", style: const TextStyle(color: Colors.grey)),
+                    Text((data['country'] != null && data['country'] != "Select Country")? data['country'] :"", style: const TextStyle(color: Colors.grey)),
                   ],
                 ),
                 const SizedBox(height: 12),
@@ -234,6 +234,49 @@ class _TeamDashboardState extends State<TeamDashboard> with TickerProviderStateM
           _buildDetailRow(Icons.calendar_today, "Founded", ((data['founded']!=null) && data['founded']!="")? data['founded']:"N/A"),
           if((data['contact_email']!=null) && (data['contact_email']!=""))_buildDetailRow(Icons.email, "Contact", data['contact_email']?? "Not Provided"),
           const SizedBox(height: 10),
+          if (isTeamAdmin) ...[
+            const Divider(color: Colors.white10, height: 40),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text("TEAM ADMINS", style: TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+                ElevatedButton(
+                  onPressed: () {
+                    ((data['admins']?.length ?? 0) < 5)? _showAddAdminDialog(data['admins'] ?? [])
+                    :_showSnackBar("Maximum of 5 admins reached. Remove an existing admin to add a new one.");
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor:((data['admins']?.length ?? 0) < 5)
+                      ? Theme.of(context).colorScheme.primary : const Color.fromARGB(255, 57, 57, 81),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: Text("ADD ADMIN", style: TextStyle(fontSize:context.isMobile? 12:14)),
+                ),
+              ],
+            ),
+            const SizedBox(height: 15),
+            _buildAdminList(data['admins'] ?? [], ),
+            const SizedBox(height: 30),
+            const Divider(color: Colors.white10, thickness: 0.5),
+            const SizedBox(height: 10),
+            Center(
+              child: TextButton(
+                onPressed: () => _deleteAdminOrTeam(context, "x", "Do you want to delete this tournament?"),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color.fromARGB(255, 186, 14, 2),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                child: const Text("DELETE TEAM", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              ),
+            ),
+            const SizedBox(height: 20),
+          ]
         ],
       ),
     );
@@ -251,6 +294,7 @@ class _TeamDashboardState extends State<TeamDashboard> with TickerProviderStateM
             children: [
               Text(label, style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 12)),
               Row(
+                spacing: 5,
                 children: [
                   Text(value, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500)),
                   if(label == "ID") IconButton(
@@ -278,6 +322,71 @@ class _TeamDashboardState extends State<TeamDashboard> with TickerProviderStateM
       ),
     );
   }
+
+  Widget _buildAdminList(List admins) {
+  if (admins.isEmpty) return const Text("No admins assigned", style: TextStyle(color: Colors.white38));
+
+  return FutureBuilder<List<DocumentSnapshot>>(
+    future: Future.wait(admins.map((uid) => 
+      FirebaseFirestore.instance.collection('users').doc(uid).get()
+    )),
+    builder: (context, snapshot) {
+      if (snapshot.connectionState == ConnectionState.waiting) {
+        return const Center(child: LinearProgressIndicator(color: Colors.blueAccent));
+      }
+
+      if (!snapshot.hasData || snapshot.data!.isEmpty) {
+        return const Text("Error loading admins", style: TextStyle(color: Colors.redAccent));
+      }
+
+      return Wrap(
+        spacing: 10,
+        runSpacing: 10,
+        children: snapshot.data!.map((userDoc) {
+          var userData = userDoc.data() as Map<String, dynamic>?;
+          String fullName = userData != null? "${userData['firstname'] ?? ""} ${userData['lastname'] ?? ""}".trim(): "Unknown User";
+          String? dpUrl = userData?['logo_url'];
+          String initial = fullName.isNotEmpty? fullName[0].toUpperCase() : "?";
+
+          return Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1E1E24),
+              borderRadius: BorderRadius.circular(30),
+              border: Border.all(color: Colors.white10),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.2),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                )
+              ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircleAvatar(
+                  radius: 14,
+                  backgroundColor: Theme.of(context).colorScheme.primary,
+                  backgroundImage: (dpUrl != null && dpUrl.isNotEmpty) ? NetworkImage(dpUrl) : null,
+                  child: (dpUrl == null || dpUrl.isEmpty) 
+                      ? Text(initial, style: const TextStyle(fontSize: 12, color: Colors.white, fontWeight: FontWeight.bold)) : null,
+                ),
+                const SizedBox(width: 10),
+                Text(fullName, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500)),
+                const SizedBox(width: 5),
+                if(admins.length > 1) IconButton(
+                  onPressed: () => _deleteAdminOrTeam(context, userDoc.id, fullName),
+                  icon: Icon(Icons.remove_circle_outline, color:Colors.blue, size: 20)
+                ),
+              ],
+            ),
+          );
+        }).toList(),
+      );
+    },
+  );
+}
 
   void _showEditTeamDialog(Map<String, dynamic> data) {
     _nameEditController.text = data['name'] ?? "";
@@ -453,5 +562,176 @@ class _TeamDashboardState extends State<TeamDashboard> with TickerProviderStateM
     );
   }
 
-  
+  void _showAddAdminDialog(List admins){
+    final TextEditingController adminEmailController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E24),
+        title: const Text("ADD NEW ADMIN   ", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        content: TextField(
+          controller: adminEmailController,
+          style: const TextStyle(color: Colors.white),
+          decoration: const InputDecoration(
+            hintText: "Enter user email",
+            hintStyle: TextStyle(color: Colors.white24),
+            enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white10)),
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("CANCEL")),
+          ElevatedButton(
+            onPressed:() {
+              final email = adminEmailController.text.trim();
+              if(email.isNotEmpty){
+                _addAdminByEmail(admins, email);
+                Navigator.pop(dialogContext);
+                adminEmailController.clear();
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor:Theme.of(context).colorScheme.primary,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text("ADD"),
+          ),
+        ],
+      )
+    );
+  }
+
+  Future<void> _addAdminByEmail(List admins, String email) async {
+    if (email.isEmpty) return;
+
+    if(admins.length >= 5){
+      _showSnackBar("Maximum limit of 5 admins reached.");
+      return;
+    }
+
+    try{
+      var userQuery = await FirebaseFirestore.instance.collection('users').where('email', isEqualTo: email).limit(1).get();
+
+      if(userQuery.docs.isEmpty){
+        _showSnackBar("User with this email not found.");
+        return;
+      }
+
+      String newAdminId = userQuery.docs.first.id;
+
+      if(admins.contains(newAdminId)){
+        _showSnackBar("User is already an admin.");
+        return;
+      }
+
+      await FirebaseFirestore.instance.collection('teams').doc(widget.teamId).update({
+        'admins': FieldValue.arrayUnion([newAdminId])
+      });
+
+      _showSnackBar("Admin set successfully!");
+    } catch(e){
+      _showSnackBar("Error adding admin: $e");
+    }
+  }
+
+  void _deleteAdminOrTeam(BuildContext context, String id, String name) {
+    showDialog(
+      context: context,
+      builder: (confirmContext) {
+        return Center(
+          child: Material(
+            color: Colors.transparent,
+            child: Container(
+              width: 280,
+              decoration: BoxDecoration(
+                color: const Color(0xFF1E1E24),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: Colors.white10),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Padding(
+                    padding: EdgeInsets.symmetric(vertical: 30, horizontal: 20),
+                    child: Text(
+                      id != "x"? "Remove $name as admin?" : "Do you want to delete this team?",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.white, fontSize: 16),
+                    ),
+                  ),
+                  
+                  const Divider(color: Colors.white10, height: 1),
+
+                  IntrinsicHeight(
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: InkWell(
+                            borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(24)),
+                            onTap: () => Navigator.pop(confirmContext),
+                            child: Container(
+                              alignment: Alignment.center,
+                              height: 60,
+                              child: const Text("Cancel", style: TextStyle(color: Colors.purple, fontSize: 16.0, fontWeight: FontWeight.bold)),
+                            ),
+                          ),
+                        ),
+                        
+                        const VerticalDivider(color: Colors.white10, width: 1),
+
+                        Expanded(
+                          child: InkWell(
+                            borderRadius: const BorderRadius.only(bottomRight: Radius.circular(24)),
+                            onTap: () async {
+                              try{
+                                if(id == "x"){
+                                  await FirebaseFirestore.instance.collection('teams').doc(widget.teamId).delete();
+
+                                  if(confirmContext.mounted){
+                                    Navigator.pop(confirmContext);
+                                    Navigator.of(context).popUntil((route) => route.isFirst);
+                                  }
+                                  _showSnackBar("Team deleted Successfully!");
+                                }
+                                else {
+                                  await FirebaseFirestore.instance.collection('teams').doc(widget.teamId).update({
+                                    'admins': FieldValue.arrayRemove([id])
+                                  });
+                                  
+                                  if(confirmContext.mounted){
+                                    Navigator.pop(confirmContext);
+                                  }
+                                  _showSnackBar("$name successfully removed as admin.");
+                                }
+                              } catch(e){
+                                _showSnackBar(id == "x"? "Something went wrong." : "Error: failed to remove as admin. $e");
+                              }
+                            },
+                            child: Container(
+                              alignment: Alignment.center,
+                              height: 60,
+                              child: Text(
+                                id != "x"? "Remove": "Delete",
+                                style: TextStyle(color: Colors.redAccent, fontSize: 16.0, fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showSnackBar(String text) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(text, style: const TextStyle(color: Colors.white)), backgroundColor: const Color(0xFF1E1E24))
+    );
+  }
 }

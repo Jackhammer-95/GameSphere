@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:gamesphere/TheProvider.dart';
+import 'package:gamesphere/structures/CreateTeam.dart';
 import 'package:gamesphere/structures/Team%20Profile/TeamProfile.dart';
 import 'package:provider/provider.dart';
 import 'package:gamesphere/widgets/ProfileDialog.dart';
@@ -63,9 +64,21 @@ class _SearchTeamPageState extends State<SearchTeamPage> {
     setState(() => _isLoading = true);
 
     try {
-      Query query = FirebaseFirestore.instance.collection('teams');
+      final collectionRef = FirebaseFirestore.instance.collection('teams');
+      Query query = collectionRef;
 
       if (_searchQuery.isNotEmpty){
+        final docSnapshot = await collectionRef.doc(_searchController.text.trim()).get();
+
+        if(docSnapshot.exists){
+          setState(() {
+            _teams = [docSnapshot];
+            _hasMore = false;
+            _isLoading = false;
+          });
+          return;
+        }
+
         query = query.where('name_lowercase', isGreaterThanOrEqualTo: _searchQuery)
         .where('name_lowercase', isLessThanOrEqualTo: '$_searchQuery\uf8ff').orderBy('name_lowercase');
       }
@@ -141,7 +154,7 @@ class _SearchTeamPageState extends State<SearchTeamPage> {
                 },
               ),
               if(!context.isMobile)ElevatedButton(
-                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SearchTeamPage())),
+                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const CreateTeamPage())),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color.fromARGB(255, 57, 57, 81),
                   foregroundColor: Colors.white,
@@ -218,7 +231,7 @@ class _SearchTeamPageState extends State<SearchTeamPage> {
             child: Align(
               alignment: Alignment.topLeft,
               child: ElevatedButton(
-                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SearchTeamPage())),
+                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const CreateTeamPage())),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color.fromARGB(255, 57, 57, 81),
                   foregroundColor: Colors.white,
@@ -371,7 +384,7 @@ class _SearchTeamPageState extends State<SearchTeamPage> {
                                   const SizedBox(width: 8),
                                   Text((data['squad_size'] ?? 0).toString(), style: TextStyle(color: Theme.of(context).colorScheme.primary)),
                                   Spacer(),
-                                  if(data['flag'] != null) Text(data['flag'], style: TextStyle(fontSize: 16)),
+                                  if(data['flag'] != null && data['flag'] != "🌍") Text(data['flag'], style: TextStyle(fontSize: 16)),
                                 ],
                               ),
                               const SizedBox(height: 8),

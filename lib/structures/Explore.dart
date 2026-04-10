@@ -66,9 +66,21 @@ class _ExplorePageState extends State<ExplorePage> {
     setState(() => _isLoading = true);
 
     try {
-      Query query = FirebaseFirestore.instance.collection('tournaments');
+      final collectionRef = FirebaseFirestore.instance.collection('tournaments');
+      Query query = collectionRef;
 
       if (_searchQuery.isNotEmpty){
+        final docSnapshot = await collectionRef.doc(_searchController.text.trim()).get();
+
+        if(docSnapshot.exists){
+          setState(() {
+            _tournaments = [docSnapshot];
+            _hasMore = false;
+            _isLoading = false;
+          });
+          return;
+        }
+
         query = query.where('title_lowercase', isGreaterThanOrEqualTo: _searchQuery)
         .where('title_lowercase', isLessThanOrEqualTo: '$_searchQuery\uf8ff').orderBy('title_lowercase');
       }
@@ -433,12 +445,18 @@ class _ExplorePageState extends State<ExplorePage> {
                                     ),
                                     const SizedBox(width: 8),
                                     if((data['is_private']?? false)) Icon(Icons.lock_outline, color: Colors.grey, size: 20,),
+                                    Spacer(),
+                                    Icon(Icons.people_alt_outlined, color: Theme.of(context).colorScheme.primary, size: 18),
+                                    const SizedBox(width: 4),
+                                    Text("${data['participant_count'] ?? 0}",
+                                      style:TextStyle(color: Colors.white70, fontSize: context.isMobile ? 12 : 14, fontWeight: FontWeight.bold),
+                                    ),
                                   ],
                                 ),
                                 const SizedBox(height: 8),
                                 Row(
                                   children: [
-                                    Expanded(child: Text(data['title'], style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize:context.isMobile?18: 24,))),
+                                    Expanded(child: Text(data['title'], style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize:context.isMobile? 18: 24,))),
                                   ],
                                 ),
                               ],

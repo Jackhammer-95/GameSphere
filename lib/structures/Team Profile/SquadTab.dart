@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-// import 'package:gamesphere/screens/ProfileDashboard.dart';
 import 'package:flutter/services.dart';
+import 'package:gamesphere/ProfileZone/ProfileDashboard.dart';
 
 class SquadTab extends StatefulWidget {
   final String teamId;
@@ -129,7 +129,7 @@ class _SquadTabState extends State<SquadTab> {
       margin: const EdgeInsets.only(bottom: 10),
       child: ListTile(
         onTap: isLinked ? () {
-          // Navigator.push(context, MaterialPageRoute(builder: (context) => ProfileDashboard(uid: userId!)));
+          if(userId != null) Navigator.push(context, MaterialPageRoute(builder: (context) => ProfileDashboard(personId: userId)));
         } : null,
         leading: CircleAvatar(
           backgroundColor: Colors.blueAccent.withOpacity(0.1),

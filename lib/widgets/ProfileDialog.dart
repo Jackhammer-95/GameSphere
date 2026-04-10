@@ -152,7 +152,7 @@ void showProfileDialog(BuildContext context, User user, String? dpImage) {
                           ListTile(
                             leading: const Icon(Icons.person_outlined, color: Colors.white70),
                             title: const Text("Profile", style: TextStyle(color: Colors.white, fontSize: 14)),
-                            onTap: () {Navigator.push(context, MaterialPageRoute(builder: (context) => const ProfileDashboard()),);},
+                            onTap: () {Navigator.push(context, MaterialPageRoute(builder: (context) => ProfileDashboard(personId: userprov.uid)));},
                           ),
                           
                           const Divider(color: Colors.white10, height: 1),

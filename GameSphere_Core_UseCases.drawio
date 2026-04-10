@@ -1,0 +1,88 @@
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0">
+  <diagram id="GameSphere_Core_UCs" name="GameSphere - Core Actions">
+    <mxGraphModel dx="2060" dy="4432" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="1654" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" parent="1" style="text;html=1;strokeColor=none;fillColor=none;font-size=26;fontStyle=1;verticalAlign=top;horizontalAlign=center;spacing=0;" value="GameSphere - Core Use Cases" vertex="1">
+          <mxGeometry height="50" width="570" x="150" y="-1912" as="geometry" />
+        </mxCell>
+        <mxCell id="actor" parent="1" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;" value="User" vertex="1">
+          <mxGeometry height="100" width="50" x="130" y="-1562" as="geometry" />
+        </mxCell>
+        <mxCell id="system" parent="1" style="shape=rectangle;html=1;verticalAlign=top;verticalLabelPosition=top;align=center;labelPosition=center;fontSize=13;fontStyle=1;strokeColor=#000000;strokeWidth=2;fillColor=none;dashed=1;" value="" vertex="1">
+          <mxGeometry height="1050" width="550" x="270" y="-1810" as="geometry" />
+        </mxCell>
+        <mxCell id="uc1" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E6F2FF;strokeColor=#4472C4;strokeWidth=2.5;" value="Authenticate User" vertex="1">
+          <mxGeometry height="75" width="180" x="450" y="-1772" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E6F2FF;strokeColor=#4472C4;strokeWidth=2.5;" value="Create Tournament" vertex="1">
+          <mxGeometry height="75" width="180" x="450" y="-1632" as="geometry" />
+        </mxCell>
+        <mxCell id="uc3" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E6F2FF;strokeColor=#4472C4;strokeWidth=2.5;" value="Configure Tournament&#xa;Format &amp; Settings" vertex="1">
+          <mxGeometry height="75" width="180" x="450" y="-1512" as="geometry" />
+        </mxCell>
+        <mxCell id="uc4" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E6F2FF;strokeColor=#4472C4;strokeWidth=2.5;" value="Join Tournament" vertex="1">
+          <mxGeometry height="75" width="180" x="450" y="-1382" as="geometry" />
+        </mxCell>
+        <mxCell id="uc5" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E6F2FF;strokeColor=#4472C4;strokeWidth=2.5;" value="Browse &amp; Search&#xa;Tournaments" vertex="1">
+          <mxGeometry height="75" width="180" x="450" y="-1262" as="geometry" />
+        </mxCell>
+        <mxCell id="uc6" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E6F2FF;strokeColor=#4472C4;strokeWidth=2.5;" value="Manage Teams&#xa;&amp; Squad" vertex="1">
+          <mxGeometry height="75" width="180" x="450" y="-1132" as="geometry" />
+        </mxCell>
+        <mxCell id="uc7" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E6F2FF;strokeColor=#4472C4;strokeWidth=2.5;" value="Monitor Tournament&#xa;Progress" vertex="1">
+          <mxGeometry height="75" width="180" x="450" y="-1002" as="geometry" />
+        </mxCell>
+        <mxCell id="uc8" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E6F2FF;strokeColor=#4472C4;strokeWidth=2.5;" value="Manage User&#xa;Profile" vertex="1">
+          <mxGeometry height="75" width="180" x="450" y="-892" as="geometry" />
+        </mxCell>
+        <mxCell id="edge1" edge="1" parent="1" source="actor" style="endArrow=open;html=1;rounded=0;exitX=1;exitY=0.3333333333333333;entryX=0;entryY=0.35;strokeWidth=2;strokeColor=#000000;exitDx=0;exitDy=0;exitPerimeter=0;" target="uc1" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge2" edge="1" parent="1" source="actor" style="endArrow=open;html=1;rounded=0;entryX=0;entryY=0.35;strokeWidth=2;strokeColor=#000000;exitX=1;exitY=0.3333333333333333;exitDx=0;exitDy=0;exitPerimeter=0;" target="uc2" value="">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="150" y="-1752" as="sourcePoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge3" edge="1" parent="1" source="actor" style="endArrow=open;html=1;rounded=0;entryX=0;entryY=0.35;strokeWidth=2;strokeColor=#000000;exitX=1;exitY=0.3333333333333333;exitDx=0;exitDy=0;exitPerimeter=0;" target="uc4" value="">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="150" y="-1742" as="sourcePoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge4" edge="1" parent="1" source="actor" style="endArrow=open;html=1;rounded=0;entryX=0;entryY=0.35;strokeWidth=2;strokeColor=#000000;exitX=1;exitY=0.3333333333333333;exitDx=0;exitDy=0;exitPerimeter=0;" target="uc5" value="">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="190" y="-1682" as="sourcePoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge5" edge="1" parent="1" source="actor" style="endArrow=open;html=1;rounded=0;entryX=0;entryY=0.35;strokeWidth=2;strokeColor=#000000;exitX=1;exitY=1;exitDx=0;exitDy=0;exitPerimeter=0;" value="">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="150" y="-1752" as="sourcePoint" />
+            <mxPoint x="453.7884109059627" y="-1095.2655080797626" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge6" edge="1" parent="1" source="actor" style="endArrow=open;html=1;rounded=0;entryX=0;entryY=0.35;strokeWidth=2;strokeColor=#000000;exitX=1;exitY=1;exitDx=0;exitDy=0;exitPerimeter=0;" target="uc7" value="">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="150" y="-1682" as="sourcePoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge7" edge="1" parent="1" source="actor" style="endArrow=open;html=1;rounded=0;entryX=0;entryY=0.5;strokeWidth=2;strokeColor=#000000;exitX=1;exitY=1;exitDx=0;exitDy=0;exitPerimeter=0;" target="uc8" value="">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="150" y="-1742" as="sourcePoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="inc1" edge="1" parent="1" source="uc2" style="endArrow=open;dashed=1;html=1;rounded=0;exitX=0.5;exitY=1;entryX=0.5;entryY=0;strokeWidth=1.5;strokeColor=#666666;fontSize=9;labelBackgroundColor=#FFFFFF;" target="uc3" value="&lt;include&gt;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="inc2" edge="1" parent="1" source="uc5" style="endArrow=open;dashed=1;html=1;rounded=0;exitX=0.5;exitY=0;strokeWidth=1.5;strokeColor=#666666;fontSize=9;labelBackgroundColor=#FFFFFF;entryX=0.5;entryY=1;entryDx=0;entryDy=0;exitDx=0;exitDy=0;" target="uc4" value="&lt;include&gt;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="540" y="-1382" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="inc3" edge="1" parent="1" source="uc6" style="endArrow=open;dashed=1;html=1;rounded=0;exitX=0.2;exitY=0;entryX=0.2;entryY=1;strokeWidth=1.5;strokeColor=#666666;fontSize=9;labelBackgroundColor=#FFFFFF;" target="uc5" value="&lt;include&gt;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

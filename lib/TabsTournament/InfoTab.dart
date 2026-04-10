@@ -50,7 +50,7 @@ Widget buildInfoTab(BuildContext context, Map<String, dynamic> data) {
                       children: [
                         Icon(Icons.description_outlined, color: Colors.blueAccent.withOpacity(0.8), size: 24),
                         const SizedBox(width: 8),
-                        const Text("Description", style: TextStyle(color: Colors.white38, fontWeight: FontWeight.bold, fontSize: 16)),
+                        const Text("Description", style: TextStyle(color: Colors.white38, fontSize: 16)),
                       ],
                     ),
                     const Padding(
@@ -60,7 +60,8 @@ Widget buildInfoTab(BuildContext context, Map<String, dynamic> data) {
                     Text(
                       (data['description'].isEmpty || data['description'] == null)? "(No description provided for this tournament.)": data['description'],
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.8),
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
                         height: 1.6,
                         fontSize: 16,
                       ),

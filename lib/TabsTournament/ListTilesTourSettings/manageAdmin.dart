@@ -85,12 +85,18 @@ class _ManageAdminState extends State<ManageAdmin> {
         return FutureBuilder<DocumentSnapshot>(
           future: FirebaseFirestore.instance.collection('users').doc(uid).get(),
           builder: (context, snapshot){
+            var userData = snapshot.data?.data() as Map<String, dynamic>?;
+            String? logoUrl = (userData != null && userData.containsKey('logo_url'))? userData['logo_url'] : null;
             String name = snapshot.hasData ? "${snapshot.data!['firstname']} ${snapshot.data!['lastname']}" : "Loading...";
             bool isCreator = uid == widget.data['creator_id'];
 
             return ListTile(
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
-              leading: const CircleAvatar(backgroundColor: Colors.white10, child: Icon(Icons.person, color: Colors.white)),
+              leading: CircleAvatar(
+                backgroundColor: Colors.white10,
+                backgroundImage: (logoUrl != null && logoUrl.isNotEmpty)? NetworkImage(logoUrl) : null,
+                child: (logoUrl != null && logoUrl.isNotEmpty)? null : Icon(Icons.person, color: Colors.white)
+              ),
               title: Text(name, style: const TextStyle(color: Colors.white)),
               trailing: (!isCreator && ((widget.userId == widget.data['creator_id']) || (uid == widget.userId)))? IconButton(
                 icon: const Icon(Icons.remove_circle_outline, color: Colors.redAccent,),
@@ -109,7 +115,7 @@ class _ManageAdminState extends State<ManageAdmin> {
 
     List admins = widget.data['admins'] ?? [];
     if(admins.length >= 5){
-      _showSnackBar("Maximum limit of 5 admins raeched.");
+      _showSnackBar("Maximum limit of 5 admins reached.");
       return;
     }
 
@@ -143,87 +149,87 @@ class _ManageAdminState extends State<ManageAdmin> {
   }
 
   void _removeAdmin(BuildContext context, String id, String name, bool himself) {
-  showDialog(
-    context: context,
-    builder: (confirmContext) {
-      return Center(
-        child: Material(
-          color: Colors.transparent,
-          child: Container(
-            width: 280,
-            decoration: BoxDecoration(
-              color: const Color(0xFF1E1E24),
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: Colors.white10),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Padding(
-                  padding: EdgeInsets.symmetric(vertical: 30, horizontal: 20),
-                  child: Text(
-                    "Remove ${himself? "yourself": name} as admin?",
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.white, fontSize: 16),
+    showDialog(
+      context: context,
+      builder: (confirmContext) {
+        return Center(
+          child: Material(
+            color: Colors.transparent,
+            child: Container(
+              width: 280,
+              decoration: BoxDecoration(
+                color: const Color(0xFF1E1E24),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: Colors.white10),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Padding(
+                    padding: EdgeInsets.symmetric(vertical: 30, horizontal: 20),
+                    child: Text(
+                      "Remove ${himself? "yourself": name} as admin?",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.white, fontSize: 16),
+                    ),
                   ),
-                ),
-                
-                const Divider(color: Colors.white10, height: 1),
+                  
+                  const Divider(color: Colors.white10, height: 1),
 
-                IntrinsicHeight(
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: InkWell(
-                          borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(24)),
-                          onTap: () => Navigator.pop(confirmContext),
-                          child: Container(
-                            alignment: Alignment.center,
-                            height: 60,
-                            child: const Text("Cancel", style: TextStyle(color: Colors.purple, fontSize: 16.0, fontWeight: FontWeight.bold)),
-                          ),
-                        ),
-                      ),
-                      
-                      const VerticalDivider(color: Colors.white10, width: 1),
-
-                      Expanded(
-                        child: InkWell(
-                          borderRadius: const BorderRadius.only(bottomRight: Radius.circular(24)),
-                          onTap: () async {
-                            try{
-                              await FirebaseFirestore.instance.collection('tournaments').doc(widget.tournamentId).update({
-                                'admins': FieldValue.arrayRemove([id])
-                              });
-
-                              Navigator.pop(confirmContext);
-
-                              _showSnackBar("$name successfully removed as admin.");
-                            } catch(e){
-                              _showSnackBar("Error: failed to remove as admin. $e");
-                            }
-                          },
-                          child: Container(
-                            alignment: Alignment.center,
-                            height: 60,
-                            child: const Text(
-                              "Remove",
-                              style: TextStyle(color: Colors.redAccent, fontSize: 16.0, fontWeight: FontWeight.bold),
+                  IntrinsicHeight(
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: InkWell(
+                            borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(24)),
+                            onTap: () => Navigator.pop(confirmContext),
+                            child: Container(
+                              alignment: Alignment.center,
+                              height: 60,
+                              child: const Text("Cancel", style: TextStyle(color: Colors.purple, fontSize: 16.0, fontWeight: FontWeight.bold)),
                             ),
                           ),
                         ),
-                      ),
-                    ],
+                        
+                        const VerticalDivider(color: Colors.white10, width: 1),
+
+                        Expanded(
+                          child: InkWell(
+                            borderRadius: const BorderRadius.only(bottomRight: Radius.circular(24)),
+                            onTap: () async {
+                              try{
+                                await FirebaseFirestore.instance.collection('tournaments').doc(widget.tournamentId).update({
+                                  'admins': FieldValue.arrayRemove([id])
+                                });
+
+                                Navigator.pop(confirmContext);
+
+                                _showSnackBar("$name successfully removed as admin.");
+                              } catch(e){
+                                _showSnackBar("Error: failed to remove as admin. $e");
+                              }
+                            },
+                            child: Container(
+                              alignment: Alignment.center,
+                              height: 60,
+                              child: const Text(
+                                "Remove",
+                                style: TextStyle(color: Colors.redAccent, fontSize: 16.0, fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
-        ),
-      );
-    },
-  );
-}
+        );
+      },
+    );
+  }
 
   void _showSnackBar(String text) {
     ScaffoldMessenger.of(context).showSnackBar(

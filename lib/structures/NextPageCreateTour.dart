@@ -73,6 +73,7 @@ class _TournamentSettingsPageState extends State<TournamentSettingsPage>{
         'admins':[userProvider.uid],
         'is_private': widget.password != null && widget.password!.isNotEmpty,
         'password': widget.password ?? "",
+        'participant_count': 0,
       };
 
       await docref.set(tournamentData);
