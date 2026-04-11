@@ -137,7 +137,7 @@ class _ManageParticipantsState extends State<ManageParticipants> {
                   ],
                   rows: List.generate(widget.data['teams_per_group'], (index){
                     var participant = participantMap[index];
-                    bool isEmptySlot = participant == null;
+                    bool isEmptySlot = participant == null || participant['team_id'] == null;
                     bool canEdit = isEmptySlot || (participant['imported'] == false);
                 
                     return DataRow(cells: [
@@ -579,23 +579,34 @@ class _ManageParticipantsState extends State<ManageParticipants> {
     DocumentReference tournamentRef = FirebaseFirestore.instance.collection('tournaments').doc(widget.tournamentId);
     DocumentReference participantRef = tournamentRef.collection('participants').doc(slotId);
 
+    DocumentSnapshot existingDoc = await participantRef.get();
+
     WriteBatch batch = FirebaseFirestore.instance.batch();
 
-    batch.set(participantRef, {
-    'team_id': teamId,
-    'group': groupName,
-    'slot_index': slotIndex,
-    'played': 0,
-    'won': 0,
-    'drawn': 0,
-    'lost': 0,
-    'points': 0,
-    'scored': 0,
-    'conceded': 0,
-    'difference': 0,
-    'imported': imported,
-    'added_at': FieldValue.serverTimestamp(),
-    });
+    if (!existingDoc.exists){
+      batch.set(participantRef, {
+      'team_id': teamId,
+      'group': groupName,
+      'slot_index': slotIndex,
+      'played': 0,
+      'won': 0,
+      'drawn': 0,
+      'lost': 0,
+      'points': 0,
+      'scored': 0,
+      'conceded': 0,
+      'difference': 0,
+      'imported': imported,
+      'added_at': FieldValue.serverTimestamp(),
+      });
+    }
+    else{
+      batch.update(participantRef, {
+        'team_id': teamId,
+        'imported': imported,
+        'added_at': FieldValue.serverTimestamp(),
+      });
+    }
 
     if(isEmptySlot) {
       batch.update(tournamentRef, {
@@ -699,7 +710,11 @@ class _ManageParticipantsState extends State<ManageParticipants> {
 
     WriteBatch batch = FirebaseFirestore.instance.batch();
 
-    batch.delete(participantRef);
+    batch.update(participantRef, {
+      'team_id': null,
+      'team_name': null,
+      'team_logo': null,
+    });
 
     batch.update(tournamentRef, {
       'participant_count': FieldValue.increment(-1),

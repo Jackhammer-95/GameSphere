@@ -78,6 +78,65 @@ class _TournamentSettingsPageState extends State<TournamentSettingsPage>{
 
       await docref.set(tournamentData);
 
+      if (widget.format != 2) {
+        WriteBatch batch = FirebaseFirestore.instance.batch();
+        CollectionReference matchesRef = docref.collection('matches');
+        int opCount = 0;
+        int matchOrder = 1;
+
+        for (int g = 0; g < _groupCount; g++) {
+          String groupName = String.fromCharCode(65 + g);
+          int totalTeams = _teamsPerGroup;
+          bool hasBye = totalTeams % 2 != 0;
+          int n = hasBye ? totalTeams + 1 : totalTeams;
+
+          List<int> slots = List.generate(n, (index) => index);
+
+          for (int leg = 1; leg <= _legs; leg++) {
+            for (int round = 0; round < n - 1; round++) {
+              for (int i = 0; i < n ~/ 2; i++) {
+                int home = slots[i];
+                int away = slots[n - 1 - i];
+
+                if (!hasBye || (home != n-1 && away != n-1)) {
+
+                  int actualHome = (leg % 2 == 0) ? away : home;
+                  int actualAway = (leg % 2 == 0) ? home : away;
+                  int actualRound = ((leg-1)*(n-1) + round + 1);
+
+                  DocumentReference matchDoc = matchesRef.doc();
+                  batch.set(matchDoc, {
+                    'match_id': matchDoc.id,
+                    'group': groupName,
+                    'round': actualRound,
+                    'leg': leg,
+                    'home_slot': actualHome,
+                    'away_slot': actualAway,
+                    'home_score': null,
+                    'away_score': null,
+                    'status': 'pending',
+                    'order': matchOrder++,
+                  });
+                  opCount++;
+
+                  // For safety. Firestore batches max 500 operations
+                  if (opCount >= 450) {
+                    await batch.commit();
+                    batch = FirebaseFirestore.instance.batch();
+                    opCount = 0;
+                  }
+                }
+              }
+              slots.insert(1, slots.removeLast());
+            }
+          }
+        }
+        // Commit any remaining matches
+        if (opCount > 0) {
+          await batch.commit();
+        }
+      }
+
       if(mounted){
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Tournament Created Successfully!", style: TextStyle(color: Colors.white)),backgroundColor: Color(0xFF1E1E24)),

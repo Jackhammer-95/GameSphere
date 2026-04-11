@@ -137,7 +137,22 @@ void againConfirmDeleteTournament(BuildContext context, BuildContext confirmCont
                           borderRadius: const BorderRadius.only(bottomRight: Radius.circular(12)),
                           onTap: () async {
                             try{
-                              await FirebaseFirestore.instance.collection('tournaments').doc(tournamentId).delete();
+                              WriteBatch batch = FirebaseFirestore.instance.batch();
+                              DocumentReference tournamentRef = FirebaseFirestore.instance.collection('tournaments').doc(tournamentId);
+
+                              var matches = await tournamentRef.collection('matches').get();
+                              for (var doc in matches.docs) {
+                                batch.delete(doc.reference);
+                              }
+
+                              var participants = await tournamentRef.collection('participants').get();
+                              for (var doc in participants.docs) {
+                                batch.delete(doc.reference);
+                              }
+
+                              batch.delete(tournamentRef);
+
+                              await batch.commit();
 
                               if(onSuccess != null) onSuccess();
 

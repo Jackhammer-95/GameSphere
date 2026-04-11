@@ -72,7 +72,7 @@ class _buildPointsTableTabState extends State<buildPointsTableTab>{
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     DataTable(
-                      headingRowColor: WidgetStateProperty.all(Colors.purple),
+                      headingRowColor: WidgetStateProperty.all(Theme.of(context).colorScheme.primary),
                       columnSpacing: 0,
                       horizontalMargin: 15,
                       columns: [
@@ -80,47 +80,58 @@ class _buildPointsTableTabState extends State<buildPointsTableTab>{
                       ],
                       rows: List.generate(snapshot.data!.docs.length, (index) {
                         var participant = snapshot.data!.docs[index];
-                        String teamId = participant['team_id'];
+                        String? teamId = participant['team_id'];
                         
                         return DataRow(
                           cells: [
-                            DataCell(StreamBuilder<DocumentSnapshot>(
-                              stream: FirebaseFirestore.instance.collection('teams').doc(teamId).snapshots(),
-                              builder: (context, teamSnapshot) {
-                                String teamName = "Loading...";
-                                String? logoUrl;
+                            DataCell(
+                              (teamId == null || teamId.isEmpty)
+                              ? Row(
+                                children: [
+                                  Text("${index + 1} ", style: const TextStyle(color: Colors.grey)),
+                                  const Icon(Icons.shield, color: Colors.white10, size: 30),
+                                  const SizedBox(width: 5),
+                                  const Text("TBD", style: TextStyle(color: Colors.white24, fontStyle: FontStyle.italic)),
+                                ],
+                              )
+                              : StreamBuilder<DocumentSnapshot>(
+                                stream: FirebaseFirestore.instance.collection('teams').doc(teamId).snapshots(),
+                                builder: (context, teamSnapshot) {
+                                  String teamName = "Loading...";
+                                  String? logoUrl;
 
-                                if (teamSnapshot.hasData && teamSnapshot.data!.exists) {
-                                  var teamData = teamSnapshot.data!.data() as Map<String, dynamic>;
-                                  teamName = teamData['name'] ?? "Unknown Team";
-                                  logoUrl = teamData['logo_url'];
-                                }
+                                  if (teamSnapshot.hasData && teamSnapshot.data!.exists) {
+                                    var teamData = teamSnapshot.data!.data() as Map<String, dynamic>;
+                                    teamName = teamData['name'] ?? "Unknown Team";
+                                    logoUrl = teamData['logo_url'];
+                                  }
 
-                                return Row(
-                                  children: [
-                                    Text("${index + 1} ", style: const TextStyle(color: Colors.grey)),
-                                    SizedBox(
-                                      height: 30,
-                                      width: 30,
-                                      child:(logoUrl != null && logoUrl.isNotEmpty)
-                                      ? Image.network(logoUrl, fit: BoxFit.contain)
-                                      : const Icon(Icons.shield, color: Colors.white38)
-                                    ),
-                                    const SizedBox(width: 5),
-                                    InkWell(
-                                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => TeamDashboard(teamId: teamId))),
-                                      child: SizedBox(
-                                        width: context.isMobile? 130 :140,
-                                        child: SingleChildScrollView(
-                                          scrollDirection: Axis.horizontal,
-                                          child: Text(teamName, style: const TextStyle(color: Colors.white)),
+                                  return Row(
+                                    children: [
+                                      Text("${index + 1} ", style: const TextStyle(color: Colors.grey)),
+                                      SizedBox(
+                                        height: 30,
+                                        width: 30,
+                                        child:(logoUrl != null && logoUrl.isNotEmpty)
+                                        ? Image.network(logoUrl, fit: BoxFit.contain)
+                                        : const Icon(Icons.shield, color: Colors.white38)
+                                      ),
+                                      const SizedBox(width: 5),
+                                      InkWell(
+                                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => TeamDashboard(teamId: teamId))),
+                                        child: SizedBox(
+                                          width: context.isMobile? 130 :140,
+                                          child: SingleChildScrollView(
+                                            scrollDirection: Axis.horizontal,
+                                            child: Text(teamName, style: const TextStyle(color: Colors.white)),
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                  ],
-                                );
-                              }
-                            )),
+                                    ],
+                                  );
+                                }
+                              )
+                            ),
                           ]
                         );
                       }),
@@ -129,7 +140,7 @@ class _buildPointsTableTabState extends State<buildPointsTableTab>{
                       child: SingleChildScrollView(
                         scrollDirection: Axis.horizontal,
                         child: DataTable(
-                          headingRowColor: WidgetStateProperty.all(Colors.purple),
+                          headingRowColor: WidgetStateProperty.all(Theme.of(context).colorScheme.primary),
                           columnSpacing: 0,
                           horizontalMargin: 15,
                           headingTextStyle: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
