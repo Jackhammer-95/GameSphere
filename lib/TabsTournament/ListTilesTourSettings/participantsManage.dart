@@ -161,10 +161,22 @@ class _ManageParticipantsState extends State<ManageParticipants> {
                                   height: 30,
                                   width: 30,
                                   child:(logo != null)
-                                  ? Image.network(logo, fit: BoxFit.contain)
+                                  ? Image.network(
+                                      logo,
+                                      fit: BoxFit.contain,
+                                      loadingBuilder: (context, child, loadingProgress){
+                                        if(loadingProgress == null) return child;
+                                        return const Center(
+                                          child: CircularProgressIndicator(strokeWidth: 3),
+                                        );
+                                      },
+                                      errorBuilder: (context, error, stackTrace){
+                                        return const Icon(Icons.shield, color: Colors.white, size: 30);
+                                      },
+                                    )
                                   : Icon(Icons.shield, color: Colors.white)
                                 )
-                                :(_showCountry)? Text(flag ?? "", style: TextStyle(fontSize: 16))
+                                :(_showCountry)? Text((flag != null && flag != "🌍")? flag :"", style: TextStyle(fontSize: 16))
                                 : const SizedBox.shrink(),
                                 const SizedBox(width: 10),
                                 Expanded(
@@ -172,7 +184,7 @@ class _ManageParticipantsState extends State<ManageParticipants> {
                                     child: Container(
                                       constraints: BoxConstraints(minWidth: 100),
                                       child: Text(
-                                        "$team_name ${(_showCountry && _showLogo)? (flag ?? "") : ""}",
+                                        "$team_name ${(_showCountry && _showLogo)? ((flag != null && flag != "🌍")? flag :"") : ""}",
                                         textAlign: TextAlign.start,
                                         maxLines: 2,
                                         overflow: TextOverflow.ellipsis,

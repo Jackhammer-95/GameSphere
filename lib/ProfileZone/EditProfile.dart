@@ -18,7 +18,6 @@ class EditProfilePage extends StatefulWidget {
 class _EditProfilePageState extends State<EditProfilePage> {
   late TextEditingController _fnameController;
   late TextEditingController _lnameController;
-  late TextEditingController _studentIdController;
   late TextEditingController _bioController;
   late TextEditingController _instController;
   late TextEditingController _phoneController;
@@ -39,7 +38,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
     final user = Provider.of<UserProvider>(context, listen: false);
     _fnameController = TextEditingController(text: user.firstName);
     _lnameController = TextEditingController(text: user.lastName);
-    _studentIdController = TextEditingController(text: user.id);
     _bioController = TextEditingController(text: user.bio);
     _instController = TextEditingController(text: user.institution);
     _phoneController = TextEditingController(text: user.phone);
@@ -54,7 +52,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
   void dispose(){
     _fnameController.dispose();
     _lnameController.dispose();
-    _studentIdController.dispose();
     _bioController.dispose();
     _instController.dispose();
     _phoneController.dispose();
@@ -180,7 +177,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
                                               const SizedBox(height: 30.0),
                                               _buildEditField("First Name", _fnameController),
                                               _buildEditField("Last Name", _lnameController),
-                                              _buildEditField("ID", _studentIdController),
                                               _buildEditField("Institution", _instController),
                                               _buildEditField("Phone Number", _phoneController),
                                               SizedBox(height: 5.0,),
@@ -274,6 +270,27 @@ class _EditProfilePageState extends State<EditProfilePage> {
                                               const SizedBox(height: 20.0),
                                               Row(
                                                 children: [
+                                                  /*ElevatedButton(
+                                                    onPressed: (){
+                                                      confirmDeleteSomething(
+                                                        context,
+                                                        userProv.uid,
+                                                        "Account",
+                                                        "Do you want to delete this account?",
+                                                        onSuccess: () {
+                                                          Navigator.of(context).popUntil((route) => route.isFirst);
+                                                        },
+                                                      );
+                                                    },
+                                                    style: ElevatedButton.styleFrom(
+                                                      backgroundColor: const Color.fromARGB(255, 186, 14, 2),
+                                                      foregroundColor: Colors.white,
+                                                      shape: RoundedRectangleBorder(
+                                                        borderRadius: BorderRadius.circular(8),
+                                                      ),
+                                                    ),
+                                                    child:Icon(Icons.delete_forever, size: 20),
+                                                  ),*/
                                                   Spacer(),
                                                   SizedBox(
                                                     height: 40,
@@ -319,7 +336,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
                                                             fname: _fnameController.text,
                                                             lname: _lnameController.text,
                                                             bio: _bioController.text,
-                                                            id: _studentIdController.text,
                                                             inst: _instController.text,
                                                             phone: _phoneController.text,
                                                             country: selectedCountry,

@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:gamesphere/TheProvider.dart';
@@ -23,6 +25,7 @@ class _SearchTeamPageState extends State<SearchTeamPage> {
   String _searchQuery = "";
   final TextEditingController _searchController = TextEditingController();
   bool _isSearching = false;
+  final FocusNode _searchFocusNode = FocusNode();
 
   void _handleSearch(){
     setState(() {
@@ -55,6 +58,7 @@ class _SearchTeamPageState extends State<SearchTeamPage> {
   void dispose(){
     _scrollController.dispose();
     _searchController.dispose();
+    _searchFocusNode.dispose();
     super.dispose();
   }
 
@@ -151,6 +155,10 @@ class _SearchTeamPageState extends State<SearchTeamPage> {
                   setState(() {
                     _isSearching = true;
                   });
+                  
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    _searchFocusNode.requestFocus();
+                  });
                 },
               ),
               if(!context.isMobile)ElevatedButton(
@@ -200,6 +208,7 @@ class _SearchTeamPageState extends State<SearchTeamPage> {
             child: (_teams.isEmpty && !_isLoading)? _buildEmptyState()
             :ListView.builder(
               controller: _scrollController,
+              cacheExtent: max(context.screenHeight*4, 3000),
               itemCount: _teams.length + (_hasMore? 1 : 0),
               padding: const EdgeInsets.all(16),
               physics: const AlwaysScrollableScrollPhysics(),
@@ -255,10 +264,13 @@ class _SearchTeamPageState extends State<SearchTeamPage> {
       child: Row(
         children: [
           IconButton(
-            icon: Icon(Icons.close, size: 20,),
-            onPressed: (){setState(() {
-              _isSearching = false;
-            });},
+            icon: Icon(Icons.close, size: 20),
+            onPressed: (){
+              _searchFocusNode.unfocus();
+              setState(() {
+                _isSearching = false;
+              });
+            },
           ),
           Expanded(child: _buildSearchField()),
           InkWell(
@@ -283,6 +295,8 @@ class _SearchTeamPageState extends State<SearchTeamPage> {
   Widget _buildSearchField(){
     return TextField(
       controller: _searchController,
+      focusNode: _searchFocusNode,
+      autofocus: true,
       textAlignVertical: TextAlignVertical.center,
       style: const TextStyle(color: Colors.white),
       onSubmitted: (_) => _handleSearch(),
@@ -370,6 +384,9 @@ class _SearchTeamPageState extends State<SearchTeamPage> {
                                   strokeWidth: 2,
                                 ),
                               );
+                            },
+                            errorBuilder: (context, error, stackTrace){
+                              return Icon(Icons.shield, color: Colors.blueGrey, size: context.isMobile? 55: 65);
                             },
                           )
                           :Center(child: Icon(Icons.shield, color: Colors.grey, size:context.isMobile? 55: 65)),

@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
-import 'package:gamesphere/widgets/DeleteTournament.dart';
+import 'package:gamesphere/widgets/confirmDeleteSomething.dart';
 import 'package:gamesphere/TabsTournament/ListTilesTourSettings/manageAdmin.dart';
 import 'package:gamesphere/TabsTournament/ListTilesTourSettings/participantsManage.dart';
 import 'package:image_picker/image_picker.dart';
@@ -109,7 +109,13 @@ class _SettingsTabState extends State<SettingsTab> {
             _settingsTile(
               Icons.delete_forever, "Delete Tournament", isDanger: true,
               onTap: (){
-                confirmDeleteTournament(context, widget.tournamentId, call: true);
+                confirmDeleteSomething(
+                  context,
+                  widget.tournamentId,
+                  "Tournament",
+                  "Do you want to delete this tournament?",
+                  call: true
+                );
               }
             ),
           ],

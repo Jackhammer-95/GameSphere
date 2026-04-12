@@ -1,7 +1,14 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
-void confirmDeleteTournament(BuildContext context, String tournamentId, {bool call = false, VoidCallback? onSuccess}) {
+void confirmDeleteSomething(
+  BuildContext context,
+  String somethingID,
+  String thing,
+  String confirmText,
+  {bool call = false, VoidCallback? onSuccess}
+) {
+
   showDialog(
     context: context,
     builder: (confirmContext) {
@@ -18,12 +25,12 @@ void confirmDeleteTournament(BuildContext context, String tournamentId, {bool ca
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 30, horizontal: 20),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 20),
                   child: Text(
-                    "Do you want to delete this tournament?",
+                    confirmText,
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.white, fontSize: 16),
+                    style: const TextStyle(color: Colors.white, fontSize: 16),
                   ),
                 ),
                 
@@ -50,7 +57,7 @@ void confirmDeleteTournament(BuildContext context, String tournamentId, {bool ca
                         child: InkWell(
                           borderRadius: const BorderRadius.only(bottomRight: Radius.circular(24)),
                           onTap: () {
-                            againConfirmDeleteTournament(context, confirmContext, tournamentId, call: call, onSuccess: onSuccess);
+                            againConfirmDeleteTournament(context, confirmContext, somethingID, thing, call: call, onSuccess: onSuccess);
                           },
 
                           child: Container(
@@ -76,7 +83,14 @@ void confirmDeleteTournament(BuildContext context, String tournamentId, {bool ca
 }
 
 
-void againConfirmDeleteTournament(BuildContext context, BuildContext confirmContext, String tournamentId, {bool call = false, VoidCallback? onSuccess}) {
+void againConfirmDeleteTournament(
+  BuildContext context,
+  BuildContext confirmContext,
+  String somethingID,
+  String thing,
+  {bool call = false, VoidCallback? onSuccess}
+) {
+
   showDialog(
     context: confirmContext,
     builder: (againConfirmContext) {
@@ -137,32 +151,51 @@ void againConfirmDeleteTournament(BuildContext context, BuildContext confirmCont
                           borderRadius: const BorderRadius.only(bottomRight: Radius.circular(12)),
                           onTap: () async {
                             try{
-                              WriteBatch batch = FirebaseFirestore.instance.batch();
-                              DocumentReference tournamentRef = FirebaseFirestore.instance.collection('tournaments').doc(tournamentId);
+                              if(thing == "Tournament"){
+                                WriteBatch batch = FirebaseFirestore.instance.batch();
+                                DocumentReference tournamentRef = FirebaseFirestore.instance.collection('tournaments').doc(somethingID);
 
-                              var matches = await tournamentRef.collection('matches').get();
-                              for (var doc in matches.docs) {
-                                batch.delete(doc.reference);
+                                var matches = await tournamentRef.collection('matches').get();
+                                for (var doc in matches.docs) {
+                                  batch.delete(doc.reference);
+                                }
+
+                                var participants = await tournamentRef.collection('participants').get();
+                                for (var doc in participants.docs) {
+                                  batch.delete(doc.reference);
+                                }
+
+                                batch.delete(tournamentRef);
+
+                                await batch.commit();
+
+                                if(onSuccess != null) onSuccess();
                               }
+                              
+                              else if(thing == "Team"){
+                                WriteBatch batch = FirebaseFirestore.instance.batch();
+                                DocumentReference teamRef = FirebaseFirestore.instance.collection('teams').doc(somethingID);
 
-                              var participants = await tournamentRef.collection('participants').get();
-                              for (var doc in participants.docs) {
-                                batch.delete(doc.reference);
+                                var squadMembers = await teamRef.collection('players').get();
+                                for (var doc in squadMembers.docs) {
+                                  batch.delete(doc.reference);
+                                }
+
+                                batch.delete(teamRef);
+
+                                await batch.commit();
                               }
-
-                              batch.delete(tournamentRef);
-
-                              await batch.commit();
-
-                              if(onSuccess != null) onSuccess();
 
                               if(againConfirmContext.mounted){
                                 Navigator.pop(againConfirmContext);
                                 if(confirmContext.mounted) Navigator.of(confirmContext).pop();
-                                if(context.mounted && call) Navigator.of(context).pop();
+                                if(thing != "Team" && context.mounted && call) {Navigator.of(context).pop();}
+                                else if(thing == "Team"){
+                                  if(onSuccess != null) onSuccess();
+                                }
 
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text("Tournament deleted Successfully!", style: TextStyle(color: Colors.white)),
+                                  SnackBar(content: Text("$thing deleted Successfully!", style: TextStyle(color: Colors.white)),
                                   backgroundColor: Color(0xFF1E1E24)),
                                 );
                               }
@@ -172,7 +205,7 @@ void againConfirmDeleteTournament(BuildContext context, BuildContext confirmCont
                                 Navigator.pop(againConfirmContext);
                                 if(confirmContext.mounted) Navigator.of(confirmContext).pop();
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text("Error: $e", style: TextStyle(color: Colors.white)),
+                                  SnackBar(content: Text("Error: something went wrong.", style: TextStyle(color: Colors.white)),
                                   backgroundColor: Color(0xFF1E1E24)),
                                 );
                               }

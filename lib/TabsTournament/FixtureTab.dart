@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:gamesphere/TheProvider.dart';
@@ -51,7 +53,7 @@ class FixturesTab extends StatelessWidget {
             return ListView.builder(
               padding: const EdgeInsets.all(16),
               itemCount: matches.length,
-              cacheExtent: context.screenHeight * 4, 
+              cacheExtent: max(context.screenHeight*4, 3000),
               itemBuilder: (context, index) {
                 var match = matches[index].data() as Map<String, dynamic>;
                 
@@ -146,7 +148,7 @@ class _MatchCard extends StatelessWidget {
                 _showScoreDialog(context, isCompleted, homeData['name'], awayData['name']);
               },
               child: Opacity(
-                opacity: (!isCompleted && (homeTeamId == null || awayTeamId == null)) ? 0.6 : 1.0,
+                opacity: (!isCompleted && (homeTeamId == null || awayTeamId == null)) ? 0.5 : 1.0,
                 child: Padding(
                   padding: context.isMobile 
                       ? const EdgeInsets.symmetric(vertical: 16, horizontal: 8) 
@@ -211,7 +213,7 @@ class _MatchCard extends StatelessWidget {
                   ],
                 )),
                 const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 10),
+                  padding: EdgeInsets.fromLTRB(10, 20, 10, 0),
                   child: Text("-", style: TextStyle(color: Colors.white, fontSize: 24)),
                 ),
                 Expanded(child: Column(
@@ -226,99 +228,108 @@ class _MatchCard extends StatelessWidget {
           ],
         ),
         actions: [
-          if(isCompleted) ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: const Color.fromARGB(255, 186, 14, 2)),
-            onPressed: () => _clearMatchResult(context),
-            child: const Text("Clear Result", style: TextStyle(color: Colors.white)),
+          if(isCompleted) Padding(
+            padding: EdgeInsets.all(context.isMobile? 4: 8),
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: const Color.fromARGB(255, 186, 14, 2)),
+              onPressed: () => _clearMatchResult(context),
+              child: const Text("Clear Result", style: TextStyle(color: Colors.white)),
+            ),
           ),
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text("Cancel", style: TextStyle(color: Colors.grey)),
+              Padding(
+                padding: EdgeInsets.all(context.isMobile? 4: 8),
+                child: TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text("Cancel", style: TextStyle(color: Colors.grey)),
+                ),
               ),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent),
-                onPressed: () async {
-                  int newHomeScore = int.tryParse(homeController.text) ?? 0;
-                  int newAwayScore = int.tryParse(awayController.text) ?? 0;
-                  
-                  bool wasCompleted = match['status'] == 'completed';
-                  int? oldHomeScore = match['home_score'];
-                  int? oldAwayScore = match['away_score'];
-              
-                  Map<String, int> getStats(int? myScore, int? oppScore, bool isDone) {
-                    if (!isDone || myScore == null || oppScore == null) {
-                      return {'p': 0, 'w': 0, 'd': 0, 'l': 0, 'pts': 0, 'gs': 0, 'gc': 0, 'gd': 0};
-                    }
-                    int w = myScore > oppScore ? 1 : 0;
-                    int d = myScore == oppScore ? 1 : 0;
-                    int l = myScore < oppScore ? 1 : 0;
-                    return {
-                      'p': 1,
-                      'w': w,
-                      'd': d,
-                      'l': l,
-                      'pts': (w * 3) + (d * 1),
-                      'gs': myScore,
-                      'gc': oppScore,
-                      'gd': myScore - oppScore,
-                    };
-                  }
-              
-                  var oldHomeStats = getStats(oldHomeScore, oldAwayScore, wasCompleted);
-                  var oldAwayStats = getStats(oldAwayScore, oldHomeScore, wasCompleted);
-              
-                  var newHomeStats = getStats(newHomeScore, newAwayScore, true);
-                  var newAwayStats = getStats(newAwayScore, newHomeScore, true);
-              
-                  Map<String, dynamic> buildUpdateMap(Map<String, int> newS, Map<String, int> oldS) {
-                    Map<String, dynamic> updates = {};
-                    Map<String, int> differences = {
-                      'played': newS['p']! - oldS['p']!,
-                      'won': newS['w']! - oldS['w']!,
-                      'drawn': newS['d']! - oldS['d']!,
-                      'lost': newS['l']! - oldS['l']!,
-                      'points': newS['pts']! - oldS['pts']!,
-                      'scored': newS['gs']! - oldS['gs']!,
-                      'conceded': newS['gc']! - oldS['gc']!,
-                      'difference': newS['gd']! - oldS['gd']!,
-                    };
+              Padding(
+                padding: EdgeInsets.all(context.isMobile? 4: 8),
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent),
+                  onPressed: () async {
+                    int newHomeScore = int.tryParse(homeController.text) ?? 0;
+                    int newAwayScore = int.tryParse(awayController.text) ?? 0;
                     
-                    differences.forEach((key, value) {
-                      if (value != 0) updates[key] = FieldValue.increment(value);
+                    bool wasCompleted = match['status'] == 'completed';
+                    int? oldHomeScore = match['home_score'];
+                    int? oldAwayScore = match['away_score'];
+                
+                    Map<String, int> getStats(int? myScore, int? oppScore, bool isDone) {
+                      if (!isDone || myScore == null || oppScore == null) {
+                        return {'p': 0, 'w': 0, 'd': 0, 'l': 0, 'pts': 0, 'gs': 0, 'gc': 0, 'gd': 0};
+                      }
+                      int w = myScore > oppScore ? 1 : 0;
+                      int d = myScore == oppScore ? 1 : 0;
+                      int l = myScore < oppScore ? 1 : 0;
+                      return {
+                        'p': 1,
+                        'w': w,
+                        'd': d,
+                        'l': l,
+                        'pts': (w * 3) + (d * 1),
+                        'gs': myScore,
+                        'gc': oppScore,
+                        'gd': myScore - oppScore,
+                      };
+                    }
+                
+                    var oldHomeStats = getStats(oldHomeScore, oldAwayScore, wasCompleted);
+                    var oldAwayStats = getStats(oldAwayScore, oldHomeScore, wasCompleted);
+                
+                    var newHomeStats = getStats(newHomeScore, newAwayScore, true);
+                    var newAwayStats = getStats(newAwayScore, newHomeScore, true);
+                
+                    Map<String, dynamic> buildUpdateMap(Map<String, int> newS, Map<String, int> oldS) {
+                      Map<String, dynamic> updates = {};
+                      Map<String, int> differences = {
+                        'played': newS['p']! - oldS['p']!,
+                        'won': newS['w']! - oldS['w']!,
+                        'drawn': newS['d']! - oldS['d']!,
+                        'lost': newS['l']! - oldS['l']!,
+                        'points': newS['pts']! - oldS['pts']!,
+                        'scored': newS['gs']! - oldS['gs']!,
+                        'conceded': newS['gc']! - oldS['gc']!,
+                        'difference': newS['gd']! - oldS['gd']!,
+                      };
+                      
+                      differences.forEach((key, value) {
+                        if (value != 0) updates[key] = FieldValue.increment(value);
+                      });
+                      return updates;
+                    }
+                
+                    var homeUpdates = buildUpdateMap(newHomeStats, oldHomeStats);
+                    var awayUpdates = buildUpdateMap(newAwayStats, oldAwayStats);
+                
+                    WriteBatch batch = FirebaseFirestore.instance.batch();
+                
+                    DocumentReference matchRef = FirebaseFirestore.instance.collection('tournaments').doc(tournamentId).collection('matches').doc(match['match_id']);
+                    batch.update(matchRef, {
+                      'home_score': newHomeScore,
+                      'away_score': newAwayScore,
+                      'status': 'completed',
                     });
-                    return updates;
-                  }
-              
-                  var homeUpdates = buildUpdateMap(newHomeStats, oldHomeStats);
-                  var awayUpdates = buildUpdateMap(newAwayStats, oldAwayStats);
-              
-                  WriteBatch batch = FirebaseFirestore.instance.batch();
-              
-                  DocumentReference matchRef = FirebaseFirestore.instance.collection('tournaments').doc(tournamentId).collection('matches').doc(match['match_id']);
-                  batch.update(matchRef, {
-                    'home_score': newHomeScore,
-                    'away_score': newAwayScore,
-                    'status': 'completed',
-                  });
-              
-                  String homeSlotId = "Group${match['group']}_Slot${match['home_slot']}";
-                  DocumentReference homeRef = FirebaseFirestore.instance.collection('tournaments').doc(tournamentId).collection('participants').doc(homeSlotId);
-                  
-                  if (homeUpdates.isNotEmpty) batch.update(homeRef, homeUpdates);
-              
-                  String awaySlotId = "Group${match['group']}_Slot${match['away_slot']}";
-                  DocumentReference awayRef = FirebaseFirestore.instance.collection('tournaments').doc(tournamentId).collection('participants').doc(awaySlotId);
-                  
-                  if (awayUpdates.isNotEmpty) batch.update(awayRef, awayUpdates);
-              
-                  await batch.commit();
-                  
-                  if (context.mounted) Navigator.pop(context);
-                },
-                child: const Text("Save Result", style: TextStyle(color: Colors.white)),
+                
+                    String homeSlotId = "Group${match['group']}_Slot${match['home_slot']}";
+                    DocumentReference homeRef = FirebaseFirestore.instance.collection('tournaments').doc(tournamentId).collection('participants').doc(homeSlotId);
+                    
+                    if (homeUpdates.isNotEmpty) batch.update(homeRef, homeUpdates);
+                
+                    String awaySlotId = "Group${match['group']}_Slot${match['away_slot']}";
+                    DocumentReference awayRef = FirebaseFirestore.instance.collection('tournaments').doc(tournamentId).collection('participants').doc(awaySlotId);
+                    
+                    if (awayUpdates.isNotEmpty) batch.update(awayRef, awayUpdates);
+                
+                    await batch.commit();
+                    
+                    if (context.mounted) Navigator.pop(context);
+                  },
+                  child: const Text("Save Result", style: TextStyle(color: Colors.white)),
+                ),
               ),
             ],
           ),
@@ -400,8 +411,20 @@ class _StaticTeamBadge extends StatelessWidget {
           height: 40,
           width: 40,
           child: (logoUrl != null && logoUrl!.isNotEmpty)
-            ? Image.network(logoUrl!, fit: BoxFit.contain)
-            : const Icon(Icons.shield, color: Colors.white24, size: 40),
+            ? Image.network(
+                logoUrl!,
+                fit: BoxFit.contain,
+                loadingBuilder: (context, child, loadingProgress){
+                  if(loadingProgress == null) return child;
+                  return const Center(
+                    child: CircularProgressIndicator(strokeWidth: 3.5),
+                  );
+                },
+                errorBuilder: (context, error, stackTrace){
+                  return const Icon(Icons.shield, color: Colors.white, size: 40);
+                },
+              )
+            : const Icon(Icons.shield, color: Colors.white, size: 40),
         ),
         const SizedBox(height: 8),
         Text(name.toUpperCase(),

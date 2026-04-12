@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:gamesphere/TheProvider.dart';
@@ -27,7 +29,7 @@ class _buildPointsTableTabState extends State<buildPointsTableTab>{
     return ListView.builder(
       padding: EdgeInsets.all(16),
       itemCount: groupCount,
-      cacheExtent: context.screenHeight*3,
+      cacheExtent: max(context.screenHeight*4, 3000),
       itemBuilder: (context, index){
         String groupName = String.fromCharCode(65+index);
 
@@ -113,7 +115,19 @@ class _buildPointsTableTabState extends State<buildPointsTableTab>{
                                         height: 30,
                                         width: 30,
                                         child:(logoUrl != null && logoUrl.isNotEmpty)
-                                        ? Image.network(logoUrl, fit: BoxFit.contain)
+                                        ? Image.network(
+                                            logoUrl,
+                                            fit: BoxFit.contain,
+                                            loadingBuilder: (context, child, loadingProgress){
+                                              if(loadingProgress == null) return child;
+                                              return const Center(
+                                                child: CircularProgressIndicator(strokeWidth: 3),
+                                              );
+                                            },
+                                            errorBuilder: (context, error, stackTrace){
+                                              return const Icon(Icons.shield, color: Colors.white38, size: 30);
+                                            },
+                                          )
                                         : const Icon(Icons.shield, color: Colors.white38)
                                       ),
                                       const SizedBox(width: 5),

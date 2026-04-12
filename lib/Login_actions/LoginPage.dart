@@ -237,7 +237,7 @@ class _GameSphereLoginState extends State<GameSphereLogin> {
       suffixIcon: suffix,
       filled: true,
       fillColor: const Color(0xFF1E1E24),
-      hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
+      hintStyle: const TextStyle(color: Colors.blueGrey, fontSize: 14),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide: const BorderSide(color: Colors.white10),

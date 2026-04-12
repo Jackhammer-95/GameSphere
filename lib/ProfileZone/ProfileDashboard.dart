@@ -156,13 +156,14 @@ class ProfileDashboard extends StatelessWidget {
                                                     const SizedBox(height: 30.0),
                                                     Divider(height: 1.0, color: Colors.white30),
                                                     const SizedBox(height: 20.0),
+
                                                     _buildDetailTile(context, Icons.tag, "UID", personId),
-                                                    if((playerData['StudentId']?? "").isNotEmpty)_buildDetailTile(context, Icons.badge_outlined, "Student ID", playerData['studentId']),
                                                     if((playerData['institution']?? "").isNotEmpty)_buildDetailTile(context, Icons.school_outlined, "Institution", playerData['institution']),
                                                     _buildDetailTile(context, Icons.public_outlined, "Country", "${playerData['flag']} ${playerData['country']}"),
                                                     _buildDetailTile(context, Icons.email_outlined, "Email Address", playerData['email']),
                                                     if((playerData['phone']?? "").isNotEmpty)_buildDetailTile(context, Icons.phone_outlined, "Contact No.", playerData['phone']),
                                                     if(playerData['dob'] != "(Select Date of Birth)")_buildDetailTile(context, Icons.calendar_month_outlined, "Date of Birth", "${playerData['dob']} (age ${playerData['age']} years)"),
+                                                    
                                                     const SizedBox(height: 15.0,),
                                                     if(context.isMobile) Text("Member Since",
                                                       style: TextStyle(fontSize: 11.0, letterSpacing: 1.5, fontWeight: FontWeight.bold, color: Colors.white70)),
@@ -365,9 +366,13 @@ class ProfileDashboard extends StatelessWidget {
               children: [
                 Text(label, style: const TextStyle(color: Colors.grey, fontSize: 12)),
                 Row(
-                  spacing: 3,
+                  spacing: 5,
                   children: [
-                    Text(value, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500)),
+                    (label == "UID" && !context.isMobile)
+                      ? Text(value, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500))
+                      : Expanded(
+                        child: Text(value, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500)),
+                      ),
                     if(label == "UID") IconButton(
                       onPressed: () async{
                         await Clipboard.setData(ClipboardData(text: value));

@@ -5,6 +5,7 @@ import 'package:gamesphere/TheProvider.dart';
 import 'package:gamesphere/structures/Team%20Profile/SquadTab.dart';
 import 'package:gamesphere/widgets/ProfileDialog.dart';
 import 'package:flutter/services.dart';
+import 'package:gamesphere/widgets/confirmDeleteSomething.dart';
 import 'package:provider/provider.dart';
 // import 'package:gamesphere/TheProvider.dart';
 
@@ -154,6 +155,9 @@ class _TeamDashboardState extends State<TeamDashboard> with TickerProviderStateM
                   ),
                 );
               },
+              errorBuilder: (context, error, stackTrace){
+                return Icon(Icons.broken_image, color: Colors.grey, size: 100);
+              },
             )
             :Center(child: Icon(Icons.shield, color: Colors.grey, size: 75)),
           ),
@@ -264,7 +268,17 @@ class _TeamDashboardState extends State<TeamDashboard> with TickerProviderStateM
             const SizedBox(height: 10),
             Center(
               child: TextButton(
-                onPressed: () => _deleteAdminOrTeam(context, "x", "Do you want to delete this tournament?"),
+                onPressed: () {
+                  confirmDeleteSomething(
+                    context,
+                    widget.teamId,
+                    "Team",
+                    "Do you want to delete this team?",
+                    onSuccess: () {
+                      Navigator.of(context).popUntil((route) => route.isFirst);
+                    },
+                  );
+                },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color.fromARGB(255, 186, 14, 2),
                   foregroundColor: Colors.white,
@@ -376,7 +390,7 @@ class _TeamDashboardState extends State<TeamDashboard> with TickerProviderStateM
                 Text(fullName, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500)),
                 const SizedBox(width: 5),
                 if(admins.length > 1) IconButton(
-                  onPressed: () => _deleteAdminOrTeam(context, userDoc.id, fullName),
+                  onPressed: () => _deleteAdmin(context, userDoc.id, fullName),
                   icon: Icon(Icons.remove_circle_outline, color:Colors.blue, size: 20)
                 ),
               ],
@@ -634,7 +648,7 @@ class _TeamDashboardState extends State<TeamDashboard> with TickerProviderStateM
     }
   }
 
-  void _deleteAdminOrTeam(BuildContext context, String id, String name) {
+  void _deleteAdmin(BuildContext context, String id, String name) {
     showDialog(
       context: context,
       builder: (confirmContext) {
@@ -654,7 +668,7 @@ class _TeamDashboardState extends State<TeamDashboard> with TickerProviderStateM
                   Padding(
                     padding: EdgeInsets.symmetric(vertical: 30, horizontal: 20),
                     child: Text(
-                      id != "x"? "Remove $name as admin?" : "Do you want to delete this team?",
+                      "Remove $name as admin?",
                       textAlign: TextAlign.center,
                       style: TextStyle(color: Colors.white, fontSize: 16),
                     ),
@@ -684,34 +698,23 @@ class _TeamDashboardState extends State<TeamDashboard> with TickerProviderStateM
                             borderRadius: const BorderRadius.only(bottomRight: Radius.circular(24)),
                             onTap: () async {
                               try{
-                                if(id == "x"){
-                                  await FirebaseFirestore.instance.collection('teams').doc(widget.teamId).delete();
-
-                                  if(confirmContext.mounted){
-                                    Navigator.pop(confirmContext);
-                                    Navigator.of(context).popUntil((route) => route.isFirst);
-                                  }
-                                  _showSnackBar("Team deleted Successfully!");
+                                await FirebaseFirestore.instance.collection('teams').doc(widget.teamId).update({
+                                  'admins': FieldValue.arrayRemove([id])
+                                });
+                                
+                                if(confirmContext.mounted){
+                                  Navigator.pop(confirmContext);
                                 }
-                                else {
-                                  await FirebaseFirestore.instance.collection('teams').doc(widget.teamId).update({
-                                    'admins': FieldValue.arrayRemove([id])
-                                  });
-                                  
-                                  if(confirmContext.mounted){
-                                    Navigator.pop(confirmContext);
-                                  }
-                                  _showSnackBar("$name successfully removed as admin.");
-                                }
+                                _showSnackBar("$name successfully removed as admin.");
                               } catch(e){
-                                _showSnackBar(id == "x"? "Something went wrong." : "Error: failed to remove as admin. $e");
+                                _showSnackBar("Error: failed to remove as admin.");
                               }
                             },
                             child: Container(
                               alignment: Alignment.center,
                               height: 60,
-                              child: Text(
-                                id != "x"? "Remove": "Delete",
+                              child: const Text(
+                                "Remove",
                                 style: TextStyle(color: Colors.redAccent, fontSize: 16.0, fontWeight: FontWeight.bold),
                               ),
                             ),

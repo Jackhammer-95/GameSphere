@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -5,7 +7,7 @@ import 'package:gamesphere/structures/HomeTournmtPage.dart';
 import 'package:intl/intl.dart';
 import 'package:gamesphere/TheProvider.dart';
 import 'package:gamesphere/widgets/ProfileDialog.dart';
-import 'package:gamesphere/widgets/DeleteTournament.dart';
+import 'package:gamesphere/widgets/confirmDeleteSomething.dart';
 
 class MyTournament extends StatefulWidget {
   const MyTournament({super.key});
@@ -25,6 +27,7 @@ class _MyTournamentState extends State<MyTournament> {
   String _searchQuery = "";
   final TextEditingController _searchController = TextEditingController();
   bool _isSearching = false;
+  final FocusNode _searchFocusNode = FocusNode();
 
   void _handleSearch(){
     setState(() {
@@ -57,6 +60,7 @@ class _MyTournamentState extends State<MyTournament> {
   void dispose(){
     _scrollController.dispose();
     _searchController.dispose();
+    _searchFocusNode.dispose();
     super.dispose();
   }
 
@@ -128,6 +132,10 @@ class _MyTournamentState extends State<MyTournament> {
               setState(() {
                 _isSearching = true;
               });
+
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                _searchFocusNode.requestFocus();
+              });
             },
           ),
           if(!context.isMobile) Padding(
@@ -165,6 +173,7 @@ class _MyTournamentState extends State<MyTournament> {
         child: (_tournaments.isEmpty && !_isLoading)? _buildEmptyState(fullEmpty: fullEmpty)
         :ListView.builder(
           controller: _scrollController,
+          cacheExtent: max(context.screenHeight*4, 3000),
           itemCount: _tournaments.length + (_hasMore? 1 : 0),
           padding: const EdgeInsets.all(16),
           physics: const AlwaysScrollableScrollPhysics(),
@@ -247,6 +256,9 @@ class _MyTournamentState extends State<MyTournament> {
                                   ),
                                 );
                               },
+                              errorBuilder: (context, error, stackTrace){
+                                return Icon(Icons.emoji_events_outlined, color: Colors.blueGrey, size: context.isMobile? 55: 65);
+                              },
                             )
                             :Center(child: Icon(Icons.emoji_events_outlined, color: Colors.amber, size:context.isMobile? 55: 65,)),
                           ),
@@ -286,9 +298,15 @@ class _MyTournamentState extends State<MyTournament> {
                                       offset: const Offset(0, 40),
                                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                                       onSelected: (value){
-                                        confirmDeleteTournament(context, data['tournament_id'], onSuccess: (){setState(() {
-                                          _tournaments.removeWhere((doc) => doc.id == data['tournament_id']);
-                                        });});
+                                        confirmDeleteSomething(
+                                          context,
+                                          data['tournament_id'],
+                                          "Tournament",
+                                          "Do you want to delete this tournament?",
+                                          onSuccess: (){setState(() {
+                                            _tournaments.removeWhere((doc) => doc.id == data['tournament_id']);
+                                          });}
+                                        );
                                       },
                                       itemBuilder: (BuildContext context) =>[
                                         const PopupMenuItem(
@@ -331,6 +349,8 @@ class _MyTournamentState extends State<MyTournament> {
   Widget _buildSearchField(){
     return TextField(
       controller: _searchController,
+      focusNode: _searchFocusNode,
+      autofocus: true,
       textAlignVertical: TextAlignVertical.center,
       style: const TextStyle(color: Colors.white),
       onSubmitted: (_) => _handleSearch(),
@@ -373,7 +393,10 @@ class _MyTournamentState extends State<MyTournament> {
         children: [
           IconButton(
             icon: Icon(Icons.close, size: 20),
-            onPressed: () => setState(() => _isSearching = false),
+            onPressed: () {
+              _searchFocusNode.unfocus();
+              setState(() => _isSearching = false);
+            },
           ),
           Expanded(child: _buildSearchField()),
           InkWell(

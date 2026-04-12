@@ -263,63 +263,71 @@ class _SquadTabState extends State<SquadTab> {
                     Expanded(
                       child: TabBarView(
                         children: [
-                          Column(
-                            children: [
-                              _buildDialogField("User ID", idController),
-                              Row(
+                          ScrollConfiguration(
+                            behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
+                            child: SingleChildScrollView(
+                              child: Column(
                                 children: [
-                                  Expanded(child: _buildDialogField("Kit #", numberController, isNumber: true)),
-                                  const SizedBox(width: 10),
-                                  Expanded(child: _buildDialogField("Position", posController)),
+                                  _buildDialogField("User ID", idController),
+                                  Row(
+                                    children: [
+                                      Expanded(child: _buildDialogField("Kit #", numberController, isNumber: true)),
+                                      const SizedBox(width: 10),
+                                      Expanded(child: _buildDialogField("Position", posController)),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 10),
+                                  isLoading? const CircularProgressIndicator()
+                                  : ElevatedButton(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Theme.of(context).colorScheme.primary,
+                                      foregroundColor: Colors.white,
+                                    ),
+                                    onPressed: () => _handlePlayerAdd(
+                                      setDialogState, 
+                                      isLinked: true, 
+                                      uid: idController.text,
+                                      num: numberController.text,
+                                      pos: posController.text,
+                                    ),
+                                    child: const Text("Add Player"),
+                                  ),
                                 ],
                               ),
-                              const Spacer(),
-                              isLoading? const CircularProgressIndicator()
-                              : ElevatedButton(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Theme.of(context).colorScheme.primary,
-                                    foregroundColor: Colors.white,
-                                  ),
-                                  onPressed: () => _handlePlayerAdd(
-                                    setDialogState, 
-                                    isLinked: true, 
-                                    uid: idController.text,
-                                    num: numberController.text,
-                                    pos: posController.text,
-                                  ),
-                                  child: const Text("Add Player"),
-                                ),
-                            ],
+                            ),
                           ),
                           // --- TAB 2: MANUAL ---
-                          SingleChildScrollView(
-                            child: Column(
-                              children: [
-                                _buildDialogField("Full Name", nameController),
-                                Row(
-                                  children: [
-                                    Expanded(child: _buildDialogField("Kit #", numberController, isNumber: true)),
-                                    const SizedBox(width: 10),
-                                    Expanded(child: _buildDialogField("Position", posController)),
-                                  ],
-                                ),
-                                const SizedBox(height: 10),
-                                isLoading? const CircularProgressIndicator()
-                                : ElevatedButton(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Theme.of(context).colorScheme.primary,
-                                    foregroundColor: Colors.white,
+                          ScrollConfiguration(
+                            behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
+                            child: SingleChildScrollView(
+                              child: Column(
+                                children: [
+                                  _buildDialogField("Full Name", nameController),
+                                  Row(
+                                    children: [
+                                      Expanded(child: _buildDialogField("Kit #", numberController, isNumber: true)),
+                                      const SizedBox(width: 10),
+                                      Expanded(child: _buildDialogField("Position", posController)),
+                                    ],
                                   ),
-                                  onPressed: () => _handlePlayerAdd(
-                                    setDialogState, 
-                                    isLinked: false, 
-                                    name: nameController.text,
-                                    num: numberController.text,
-                                    pos: posController.text,
+                                  const SizedBox(height: 10),
+                                  isLoading? const CircularProgressIndicator()
+                                  : ElevatedButton(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Theme.of(context).colorScheme.primary,
+                                      foregroundColor: Colors.white,
+                                    ),
+                                    onPressed: () => _handlePlayerAdd(
+                                      setDialogState, 
+                                      isLinked: false, 
+                                      name: nameController.text,
+                                      num: numberController.text,
+                                      pos: posController.text,
+                                    ),
+                                    child: const Text("Add Player"),
                                   ),
-                                  child: const Text("Add Player"),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
                           ),
                         ],

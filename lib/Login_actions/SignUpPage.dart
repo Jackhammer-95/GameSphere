@@ -16,7 +16,6 @@ class _SignUpPageState extends State<SignUpPage> {
   final _passwordController = TextEditingController();
   final _firstnameController = TextEditingController();
   final _lastnameController = TextEditingController();
-  final _studentIdController = TextEditingController();
   bool _isLoading = false;
 
   @override
@@ -25,7 +24,6 @@ class _SignUpPageState extends State<SignUpPage> {
     _passwordController.dispose();
     _firstnameController.dispose();
     _lastnameController.dispose();
-    _studentIdController.dispose();
     super.dispose();
   }
 
@@ -49,7 +47,6 @@ class _SignUpPageState extends State<SignUpPage> {
         'uid': userCredential.user!.uid,
         'firstname': _firstnameController.text.trim(),
         'lastname' : _lastnameController.text.trim(),
-        'studentId': _studentIdController.text.trim(),
         'email': _emailController.text.trim(),
         'role': 'user',
         'bio': '',
@@ -121,8 +118,6 @@ class _SignUpPageState extends State<SignUpPage> {
                     _buildField("First Name", _firstnameController, Icons.person_outlined),
                     const SizedBox(height: 16),
                     _buildField("Last Name", _lastnameController, Icons.person_outlined),
-                    const SizedBox(height: 16),
-                    _buildField("Student ID", _studentIdController, Icons.badge_outlined),
                     const SizedBox(height: 16),
                     _buildField("Email", _emailController, Icons.email_outlined),
                     const SizedBox(height: 16),

@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:gamesphere/structures/HomeTournmtPage.dart';
@@ -25,6 +27,7 @@ class _ExplorePageState extends State<ExplorePage> {
   final TextEditingController _searchController = TextEditingController();
   bool _obsecurePassword = true;
   bool _isSearching = false;
+  final FocusNode _searchFocusNode = FocusNode();
 
   void _handleSearch(){
     setState(() {
@@ -57,6 +60,7 @@ class _ExplorePageState extends State<ExplorePage> {
   void dispose(){
     _scrollController.dispose();
     _searchController.dispose();
+    _searchFocusNode.dispose();
     super.dispose();
   }
 
@@ -153,6 +157,10 @@ class _ExplorePageState extends State<ExplorePage> {
                   setState(() {
                     _isSearching = true;
                   });
+
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    _searchFocusNode.requestFocus();
+                  });
                 },
               ),
               if(!context.isMobile)ElevatedButton(
@@ -208,6 +216,7 @@ class _ExplorePageState extends State<ExplorePage> {
             child: (_tournaments.isEmpty && !_isLoading)? _buildEmptyState()
             :ListView.builder(
               controller: _scrollController,
+              cacheExtent: max(context.screenHeight*4, 3000),
               itemCount: _tournaments.length + (_hasMore? 1 : 0),
               padding: const EdgeInsets.all(16),
               physics: const AlwaysScrollableScrollPhysics(),
@@ -271,7 +280,10 @@ class _ExplorePageState extends State<ExplorePage> {
         children: [
           IconButton(
             icon: Icon(Icons.close, size: 20),
-            onPressed: () => setState(() => _isSearching = false),
+            onPressed: () {
+              _searchFocusNode.unfocus();
+              setState(() => _isSearching = false);
+            },
           ),
           Expanded(child: _buildSearchField()),
           InkWell(
@@ -334,6 +346,8 @@ class _ExplorePageState extends State<ExplorePage> {
   Widget _buildSearchField(){
     return TextField(
       controller: _searchController,
+      focusNode: _searchFocusNode,
+      autofocus: true,
       textAlignVertical: TextAlignVertical.center,
       style: const TextStyle(color: Colors.white),
       onSubmitted: (_) => _handleSearch(),
@@ -425,8 +439,11 @@ class _ExplorePageState extends State<ExplorePage> {
                                   ),
                                 );
                               },
+                              errorBuilder: (context, error, stackTrace){
+                                return Icon(Icons.emoji_events_outlined, color: Colors.blueGrey, size: context.isMobile? 55: 65);
+                              },
                             )
-                            :Center(child: Icon(Icons.emoji_events_outlined, color: Colors.amber, size:context.isMobile? 55: 65,)),
+                            :Center(child: Icon(Icons.emoji_events_outlined, color: Colors.amber, size:context.isMobile? 55: 65)),
                           ),
                           Expanded(
                             child: Column(

@@ -57,7 +57,7 @@ class _TournamentDashboardState extends State<TournamentDashboard>{
                   buildInfoTab(context, data),
                   FixturesTab(tournamentId: widget.tournamentId, tournamentData: data),
                   if(format != 2)buildPointsTableTab(data: data),
-                  if(format != 0)buildKnockoutTab(),
+                  if(format != 0)KnockoutTab(tournamentData: data,),
                   buildAskAiTab(),
                   if(isAdmin) SettingsTab(tournamentId: widget.tournamentId, data: data, userId: userProvider.uid),
                 ],
@@ -138,6 +138,9 @@ class _TournamentDashboardState extends State<TournamentDashboard>{
                           strokeWidth: 2,
                         ),
                       );
+                    },
+                    errorBuilder: (context, error, stackTrace){
+                      return Icon(Icons.broken_image, color: Colors.white.withOpacity(0.1), size: 100);
                     },
                   ),
                 )

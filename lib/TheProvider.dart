@@ -14,7 +14,6 @@ class UserProvider extends ChangeNotifier {
   String? _uid;
   String? _firstName;
   String? _lastName;
-  String? _studentId;
   String? _role;
   String? _bio;
   String? _institution;
@@ -32,7 +31,6 @@ class UserProvider extends ChangeNotifier {
   String get uid => _uid ?? "";
   String get firstName => _firstName ?? "";
   String get lastName => _lastName ?? "";
-  String get id => _studentId ?? "";
   String get role => _role ?? "user";
   String get email => _email ?? "";
   String get bio => _bio ?? "";
@@ -87,7 +85,6 @@ class UserProvider extends ChangeNotifier {
         
         _firstName = data['firstname'];
         _lastName = data['lastname'];
-        _studentId = data['studentId'];
         _role = data['role'];
         _email = data['email'];
         _createdAt = data['createAt'];
@@ -114,7 +111,7 @@ class UserProvider extends ChangeNotifier {
 
   // editing updates
   Future<bool> updateProfile({
-    required String fname, required String lname, required String bio, required String id, required String inst, required String phone, required String country,
+    required String fname, required String lname, required String bio, required String inst, required String phone, required String country,
     required String flag, required String dob, required int age, required String? dpUrl,
   })
   async {
@@ -124,7 +121,6 @@ class UserProvider extends ChangeNotifier {
         'firstname' : fname,
         'lastname' : lname,
         'bio' : bio,
-        'studentId' : id,
         'institution' : inst,
         'phone' : phone,
         'country' : country,
@@ -135,7 +131,7 @@ class UserProvider extends ChangeNotifier {
       });
 
       //update local state so UI updates without refresh
-      _firstName = fname; _lastName = lname; _bio = bio; _studentId = id; _institution = inst; _phone = phone; _country = country; _flag = flag; _dob = dob; _age = age; _dpUrl = dpUrl;
+      _firstName = fname; _lastName = lname; _bio = bio; _institution = inst; _phone = phone; _country = country; _flag = flag; _dob = dob; _age = age; _dpUrl = dpUrl;
       notifyListeners();
       return true;
     } catch(e){
@@ -149,4 +145,4 @@ class UserProvider extends ChangeNotifier {
 // AI integrate, knockout bracket
 // ParticipantTab fix for knockout only, notification/announcement, interested button
 // showcase, Admin permission, squad add permission
-// all image error builders
+// overflow fix in squad player import, add enter link/upload system in participantsTab/tournament Logo
