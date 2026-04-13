@@ -31,6 +31,7 @@ class _ManageParticipantsState extends State<ManageParticipants> {
   String? _manualImageUrl;
   File? _pickedImage;
   Uint8List? _webImage;
+  String? _imageUrl;
   bool _isDialogLoading = false;
   final cloudinary = CloudinaryPublic('dt2f6qqvk', 'GameSphere', cache: false);
   final ImagePicker _picker = ImagePicker();
@@ -203,7 +204,7 @@ class _ManageParticipantsState extends State<ManageParticipants> {
                                       icon: const Icon(Icons.edit, color: Colors.blueAccent),
                                       onPressed:() {
                                         _clearDialogData();
-                                        _showAddTeamDialog(groupName.codeUnitAt(0)-65, index, isEmptySlot);
+                                        _showAddTeamDialog(groupName.codeUnitAt(0)-65, index, isEmptySlot, teamData, participant['team_id']);
                                       },
                                     ),
                                     IconButton(
@@ -231,7 +232,11 @@ class _ManageParticipantsState extends State<ManageParticipants> {
     );
   }
 
-  void _showAddTeamDialog(int groupIndex, int slotIndex, bool isEmptySlot){
+  void _showAddTeamDialog(int groupIndex, int slotIndex, bool isEmptySlot, var teamData, String? teamId){
+    _nameController.text = teamData != null? (teamData['name']?? "") : "";
+    _selectedCountry = teamData != null? teamData['country']: null;
+    _selectedflag = teamData != null? teamData['flag']: null;
+    _imageUrl = teamData != null? teamData['logo_url']: null;
     
     showDialog(
       context: context,
@@ -349,7 +354,7 @@ class _ManageParticipantsState extends State<ManageParticipants> {
                                           backgroundColor: Theme.of(context).colorScheme.primary,
                                           foregroundColor: Colors.white,
                                         ),
-                                        onPressed: () => _createNewTeam(groupIndex, slotIndex, setDialogState, isEmptySlot),
+                                        onPressed: () => _createNewTeam(groupIndex, slotIndex, setDialogState, isEmptySlot, teamId),
                                         child: const Text("Assign", style: TextStyle(fontWeight: FontWeight.bold)),
                                       ),
                                   ],
@@ -397,7 +402,7 @@ class _ManageParticipantsState extends State<ManageParticipants> {
             icon: const Icon(Icons.edit, color: Colors.blueAccent),
             onPressed:() {
               _clearDialogData();
-              _showAddTeamDialog(groupName.codeUnitAt(0)-65, index, isEmptySlot);
+              _showAddTeamDialog(groupName.codeUnitAt(0)-65, index, isEmptySlot, null, null);
             },
           ),
         ],
@@ -411,6 +416,7 @@ class _ManageParticipantsState extends State<ManageParticipants> {
     if (kIsWeb && _webImage != null) {displayImage = MemoryImage(_webImage!);}
     else if (!kIsWeb && _pickedImage != null) {displayImage = FileImage(_pickedImage!);}
     else if (_manualImageUrl != null && _manualImageUrl!.isNotEmpty) {displayImage = NetworkImage(_manualImageUrl!);}
+    else if (_imageUrl != null) {displayImage = NetworkImage(_imageUrl!);}
 
     return Center(
       child: Stack(
@@ -500,7 +506,7 @@ class _ManageParticipantsState extends State<ManageParticipants> {
               _showLinkInputDialog(setDialogState);
             },
           ),
-          if(_manualImageUrl != null || _pickedImage != null || _webImage != null) ListTile(
+          if(_manualImageUrl != null || _pickedImage != null || _webImage != null || _imageUrl != null) ListTile(
             leading: const Icon(Icons.delete_outline, color: Colors.redAccent),
             title: const Text("Remove Logo", style: TextStyle(color: Colors.white)),
             onTap: () {
@@ -508,6 +514,7 @@ class _ManageParticipantsState extends State<ManageParticipants> {
                 _manualImageUrl = null;
                 _pickedImage = null;
                 _webImage = null;
+                _imageUrl = null;
               });
               Navigator.pop(context);
             },
@@ -624,7 +631,7 @@ class _ManageParticipantsState extends State<ManageParticipants> {
 
 
   // create
-  Future<void> _createNewTeam(int group, int slot, StateSetter setDialogState, bool isEmptySlot) async {
+  Future<void> _createNewTeam(int group, int slot, StateSetter setDialogState, bool isEmptySlot, String? existingTeamId) async {
     if (_nameController.text.isEmpty) return;
 
     final String currentUserUid = Provider.of<UserProvider>(context, listen: false).uid;
@@ -639,7 +646,7 @@ class _ManageParticipantsState extends State<ManageParticipants> {
     setDialogState(() => _isDialogLoading = true);
 
     try {
-      String? logoUrl;
+      String? logoUrl = _imageUrl;
 
       if (_manualImageUrl != null && _manualImageUrl!.isNotEmpty) {
         logoUrl = _manualImageUrl;
@@ -660,18 +667,33 @@ class _ManageParticipantsState extends State<ManageParticipants> {
         );
         logoUrl = response.secureUrl;
       }
+      else if (_manualImageUrl == null && _webImage == null && _pickedImage == null && _imageUrl == null) {
+        logoUrl = null; 
+      }
 
-      DocumentReference newTeam = await FirebaseFirestore.instance.collection('teams').add({
+      Map<String, dynamic> teamData = {
         'name': _nameController.text.trim(),
         'name_lowercase': _nameController.text.toLowerCase().trim(),
         'logo_url': logoUrl,
-        'created_at': FieldValue.serverTimestamp(),
         'country': _selectedCountry,
         'flag': _selectedflag,
-        'admins': [currentUserUid],
-      });
+      };
 
-      await _saveParticipant(group, slot, newTeam.id, false, isEmptySlot);
+      String finalTeamId;
+
+      if (existingTeamId != null) {
+        await FirebaseFirestore.instance.collection('teams').doc(existingTeamId).update(teamData);
+        finalTeamId = existingTeamId;
+      }
+      else {
+        teamData['created_at'] = FieldValue.serverTimestamp();
+        teamData['admins'] = [currentUserUid];
+        
+        DocumentReference newTeam = await FirebaseFirestore.instance.collection('teams').add(teamData);
+        finalTeamId = newTeam.id;
+      }
+
+      await _saveParticipant(group, slot, finalTeamId, false, isEmptySlot);
 
       if(mounted) Navigator.pop(context);
     } catch(e){
