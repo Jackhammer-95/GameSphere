@@ -27,8 +27,10 @@ class _ManageParticipantsState extends State<ManageParticipants> {
   final TextEditingController _nameController = TextEditingController();
   String? _selectedflag;
   String? _selectedCountry;
-  File? _tempImage;
-  Uint8List? _tempWebImage;
+  
+  String? _manualImageUrl;
+  File? _pickedImage;
+  Uint8List? _webImage;
   bool _isDialogLoading = false;
   final cloudinary = CloudinaryPublic('dt2f6qqvk', 'GameSphere', cache: false);
   final ImagePicker _picker = ImagePicker();
@@ -202,7 +204,7 @@ class _ManageParticipantsState extends State<ManageParticipants> {
                                       onPressed:() {
                                         _clearDialogData();
                                         _showAddTeamDialog(groupName.codeUnitAt(0)-65, index, isEmptySlot);
-                                        },
+                                      },
                                     ),
                                     IconButton(
                                       padding: EdgeInsets.zero,
@@ -230,6 +232,7 @@ class _ManageParticipantsState extends State<ManageParticipants> {
   }
 
   void _showAddTeamDialog(int groupIndex, int slotIndex, bool isEmptySlot){
+    
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
@@ -277,7 +280,7 @@ class _ManageParticipantsState extends State<ManageParticipants> {
                               child: SingleChildScrollView(
                                 child: Column(
                                   children: [
-                                    _buildTeamLogoPicker(setDialogState),
+                                    _buildTeamLogoSetter(setDialogState),
                                     const SizedBox(height: 10),
                                     _buildDialogField("Team Name*", _nameController),
                                     const SizedBox(height: 20),
@@ -402,6 +405,43 @@ class _ManageParticipantsState extends State<ManageParticipants> {
     );
   }
 
+  Widget _buildTeamLogoSetter(StateSetter setDialogState) {
+    ImageProvider? displayImage;
+
+    if (kIsWeb && _webImage != null) {displayImage = MemoryImage(_webImage!);}
+    else if (!kIsWeb && _pickedImage != null) {displayImage = FileImage(_pickedImage!);}
+    else if (_manualImageUrl != null && _manualImageUrl!.isNotEmpty) {displayImage = NetworkImage(_manualImageUrl!);}
+
+    return Center(
+      child: Stack(
+        children: [
+          CircleAvatar(
+            radius: 40,
+            backgroundColor: const Color(0xFF0E0E12),
+            backgroundImage: displayImage,
+            child: displayImage == null? const Icon(Icons.shield, size: 40, color: Colors.white24): null,
+          ),
+          Positioned(
+            bottom: 0,
+            right: 0,
+            child: InkWell(
+              onTap: () => _showImageSourceDialog(setDialogState),
+              child: Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: Colors.blueAccent,
+                shape: BoxShape.circle,
+                border: Border.all(color: const Color(0xFF1E1E24), width: 2),
+              ),
+              child: const Icon(Icons.add_a_photo, color: Colors.white, size: 16),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildDialogField(String label, TextEditingController controller) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
@@ -432,54 +472,112 @@ class _ManageParticipantsState extends State<ManageParticipants> {
     );
   }
 
-  Widget _buildTeamLogoPicker(StateSetter setDialogState) {
-    ImageProvider? displayImage;
-
-    if (kIsWeb && _tempWebImage != null) {
-      displayImage = MemoryImage(_tempWebImage!);
-    } else if (!kIsWeb && _tempImage != null) {
-      displayImage = FileImage(_tempImage!);
-    }
-
-    return Center(
-      child: Stack(
+  Future<void> _showImageSourceDialog(StateSetter setDialogState) async {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF1E1E24),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (context) => Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          CircleAvatar(
-            radius: 40,
-            backgroundColor: const Color(0xFF0E0E12),
-            backgroundImage: displayImage,
-            child: displayImage == null? const Icon(Icons.shield, size: 40, color: Colors.white24): null,
+          const Padding(
+            padding: EdgeInsets.all(16.0),
+            child: Text("Select Source", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
           ),
-          Positioned(
-            bottom: 0,
-            right: 0,
-            child: InkWell(
-              onTap: () => _pickLogoImage(setDialogState),
-              child: Container(
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                color: Colors.blueAccent,
-                shape: BoxShape.circle,
-                border: Border.all(color: const Color(0xFF1E1E24), width: 2),
-              ),
-              child: const Icon(Icons.add_a_photo, color: Colors.white, size: 16),
-              ),
-            ),
+          ListTile(
+            leading: const Icon(Icons.photo_library, color: Colors.blueAccent),
+            title: const Text("Upload from Device", style: TextStyle(color: Colors.white)),
+            onTap: () {
+              Navigator.pop(context);
+              _pickImage(setDialogState);
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.link, color: Colors.blueAccent),
+            title: const Text("Enter Image Link", style: TextStyle(color: Colors.white)),
+            onTap: () {
+              Navigator.pop(context);
+              _showLinkInputDialog(setDialogState);
+            },
+          ),
+          if(_manualImageUrl != null || _pickedImage != null || _webImage != null) ListTile(
+            leading: const Icon(Icons.delete_outline, color: Colors.redAccent),
+            title: const Text("Remove Logo", style: TextStyle(color: Colors.white)),
+            onTap: () {
+              setDialogState(() {
+                _manualImageUrl = null;
+                _pickedImage = null;
+                _webImage = null;
+              });
+              Navigator.pop(context);
+            },
+          ),
+          const SizedBox(height: 20),
+        ],
+      ),
+    );
+  }
+
+  void _showLinkInputDialog(StateSetter setDialogState) {
+    final TextEditingController urlController = TextEditingController(text: _manualImageUrl);
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E24),
+        title: const Text("Image URL", style: TextStyle(color: Colors.white)),
+        content: TextField(
+          decoration: InputDecoration(
+            hintText: "Enter image URL(jpg/png)",
+            hintStyle: const TextStyle(color: Colors.white24),
+          ),
+          controller: urlController,
+          style: const TextStyle(color: Colors.white),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
+          TextButton(
+            onPressed: () {
+              String url = urlController.text.trim();
+
+              if (url.isEmpty) {
+                Navigator.pop(context);
+                return;
+              }
+
+              if (_isValidImageLink(url)) {
+                setDialogState(() {
+                  _manualImageUrl = urlController.text.trim();
+                  _pickedImage = null;
+                  _webImage = null;
+                });
+                Navigator.pop(context);
+              }
+              else{
+                _showSnackBar("Please provide a valid .png or .jpg link.");
+              }
+            },
+            child: const Text("Confirm"),
           ),
         ],
       ),
     );
   }
 
-  Future<void> _pickLogoImage(StateSetter setDialogState) async {
+  Future<void> _pickImage([StateSetter? setDialogState]) async {
     final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
     if (image != null) {
       if (kIsWeb) {
         final bytes = await image.readAsBytes();
-        setDialogState(() => _tempWebImage = bytes);
-      }
-      else {
-        setDialogState(() => _tempImage = File(image.path));
+        (setDialogState ?? setState)(() {
+          _webImage = bytes;
+          _pickedImage = File(image.path);
+          _manualImageUrl = null;
+        });
+      } else {
+        (setDialogState ?? setState)(() {
+          _pickedImage = File(image.path);
+          _manualImageUrl = null;
+        });
       }
     }
   }
@@ -542,19 +640,23 @@ class _ManageParticipantsState extends State<ManageParticipants> {
 
     try {
       String? logoUrl;
-      if (kIsWeb && _tempWebImage != null) {
+
+      if (_manualImageUrl != null && _manualImageUrl!.isNotEmpty) {
+        logoUrl = _manualImageUrl;
+      }
+      else if (kIsWeb && _webImage != null) {
         CloudinaryResponse response = await cloudinary.uploadFile(
           CloudinaryFile.fromByteData(
-            ByteData.view(_tempWebImage!.buffer),
+            ByteData.view(_webImage!.buffer),
             identifier: 'team_${DateTime.now().millisecondsSinceEpoch}',
             resourceType: CloudinaryResourceType.Image,
           )
         );
         logoUrl = response.secureUrl;
       }
-      else if(!kIsWeb && _tempImage != null){
+      else if(!kIsWeb && _pickedImage != null){
         CloudinaryResponse response = await cloudinary.uploadFile(
-          CloudinaryFile.fromFile(_tempImage!.path, resourceType: CloudinaryResourceType.Image),
+          CloudinaryFile.fromFile(_pickedImage!.path, resourceType: CloudinaryResourceType.Image),
         );
         logoUrl = response.secureUrl;
       }
@@ -632,8 +734,9 @@ class _ManageParticipantsState extends State<ManageParticipants> {
   void _clearDialogData() {
     _idController.clear();
     _nameController.clear();
-    _tempImage = null;
-    _tempWebImage = null;
+    _manualImageUrl = null;
+    _pickedImage = null;
+    _webImage = null;
     _selectedflag = null;
     _selectedCountry = null;
   }
@@ -733,6 +836,10 @@ class _ManageParticipantsState extends State<ManageParticipants> {
     });
 
     await batch.commit();
+  }
+
+  bool _isValidImageLink(String url) {
+    return RegExp(r'\.(png|jpg|jpeg)(\?.*)?$', caseSensitive: false).hasMatch(url);
   }
 
   void _showSnackBar(String text) {

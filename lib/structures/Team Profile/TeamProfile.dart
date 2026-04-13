@@ -5,6 +5,7 @@ import 'package:gamesphere/TheProvider.dart';
 import 'package:gamesphere/structures/Team%20Profile/SquadTab.dart';
 import 'package:gamesphere/widgets/ProfileDialog.dart';
 import 'package:flutter/services.dart';
+import 'package:gamesphere/widgets/basicDeleteDialog.dart';
 import 'package:gamesphere/widgets/confirmDeleteSomething.dart';
 import 'package:provider/provider.dart';
 // import 'package:gamesphere/TheProvider.dart';
@@ -389,9 +390,32 @@ class _TeamDashboardState extends State<TeamDashboard> with TickerProviderStateM
                 const SizedBox(width: 10),
                 Text(fullName, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500)),
                 const SizedBox(width: 5),
-                if(admins.length > 1) IconButton(
-                  onPressed: () => _deleteAdmin(context, userDoc.id, fullName),
-                  icon: Icon(Icons.remove_circle_outline, color:Colors.blue, size: 20)
+                if(admins.length > 1) ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 6),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    backgroundColor: Colors.transparent,
+                    foregroundColor: Colors.blue,
+                    elevation: 0,
+                  ),
+                  onPressed: () {
+                    showUniversalDeleteDialog(
+                      context: context,
+                      content: "Are you sure you want to remove $fullName as an admin?",
+                      onConfirm: () async {
+                        try {
+                          await FirebaseFirestore.instance.collection('teams').doc(widget.teamId).update({
+                            'admins': FieldValue.arrayRemove([userDoc.id])
+                          });
+                          _showSnackBar("$fullName successfully removed as admin.");
+                        } catch (e) {
+                          _showSnackBar("Error removing admin.");
+                        }
+                      },
+                    );
+                  },
+                  child: const Icon(Icons.remove_circle_outline, size: 20),
                 ),
               ],
             ),
@@ -646,90 +670,6 @@ class _TeamDashboardState extends State<TeamDashboard> with TickerProviderStateM
     } catch(e){
       _showSnackBar("Error adding admin: $e");
     }
-  }
-
-  void _deleteAdmin(BuildContext context, String id, String name) {
-    showDialog(
-      context: context,
-      builder: (confirmContext) {
-        return Center(
-          child: Material(
-            color: Colors.transparent,
-            child: Container(
-              width: 280,
-              decoration: BoxDecoration(
-                color: const Color(0xFF1E1E24),
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: Colors.white10),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Padding(
-                    padding: EdgeInsets.symmetric(vertical: 30, horizontal: 20),
-                    child: Text(
-                      "Remove $name as admin?",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.white, fontSize: 16),
-                    ),
-                  ),
-                  
-                  const Divider(color: Colors.white10, height: 1),
-
-                  IntrinsicHeight(
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: InkWell(
-                            borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(24)),
-                            onTap: () => Navigator.pop(confirmContext),
-                            child: Container(
-                              alignment: Alignment.center,
-                              height: 60,
-                              child: const Text("Cancel", style: TextStyle(color: Colors.purple, fontSize: 16.0, fontWeight: FontWeight.bold)),
-                            ),
-                          ),
-                        ),
-                        
-                        const VerticalDivider(color: Colors.white10, width: 1),
-
-                        Expanded(
-                          child: InkWell(
-                            borderRadius: const BorderRadius.only(bottomRight: Radius.circular(24)),
-                            onTap: () async {
-                              try{
-                                await FirebaseFirestore.instance.collection('teams').doc(widget.teamId).update({
-                                  'admins': FieldValue.arrayRemove([id])
-                                });
-                                
-                                if(confirmContext.mounted){
-                                  Navigator.pop(confirmContext);
-                                }
-                                _showSnackBar("$name successfully removed as admin.");
-                              } catch(e){
-                                _showSnackBar("Error: failed to remove as admin.");
-                              }
-                            },
-                            child: Container(
-                              alignment: Alignment.center,
-                              height: 60,
-                              child: const Text(
-                                "Remove",
-                                style: TextStyle(color: Colors.redAccent, fontSize: 16.0, fontWeight: FontWeight.bold),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-    );
   }
 
   void _showSnackBar(String text) {

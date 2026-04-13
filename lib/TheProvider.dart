@@ -145,4 +145,4 @@ class UserProvider extends ChangeNotifier {
 // AI integrate, knockout bracket
 // ParticipantTab fix for knockout only, notification/announcement, interested button
 // showcase, Admin permission, squad add permission
-// overflow fix in squad player import, add enter link/upload system in participantsTab/tournament Logo
+// add enter link/upload system in participantsTab/tournament Logo

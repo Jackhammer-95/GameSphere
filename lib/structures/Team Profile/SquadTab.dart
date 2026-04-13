@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/services.dart';
 import 'package:gamesphere/ProfileZone/ProfileDashboard.dart';
+import 'package:gamesphere/widgets/basicDeleteDialog.dart';
 
 class SquadTab extends StatefulWidget {
   final String teamId;
@@ -138,26 +139,31 @@ class _SquadTabState extends State<SquadTab> {
         ),
         title: Text(name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         subtitle: Text("$position #$number", style: const TextStyle(color: Colors.grey, fontSize: 13)),
-        trailing: isTeamAdmin ? IconButton(
-          icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
-          onPressed: () async{
-            try{
-              await FirebaseFirestore.instance.collection('teams').doc(widget.teamId).collection('players').doc(docId).delete();
-              await FirebaseFirestore.instance.collection('teams').doc(widget.teamId).update({'squad_size': FieldValue.increment(-1)});
-              if(mounted){
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                  content: Text("Player deleted successfully!", style: TextStyle(color: Colors.white)),
-                  backgroundColor: Color(0xFF1E1E24),
-                ));
-              }
-            } catch(e){
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                content: Text("Something went wrong.", style: TextStyle(color: Colors.white)),
-                backgroundColor: Color(0xFF1E1E24),
-              ));
-            }
-          },
-        ) : (isLinked ? const Icon(Icons.chevron_right, color: Colors.white24) : null),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.chevron_right, color: isLinked? Colors.white24: Colors.transparent),
+            if(isTeamAdmin) IconButton(
+              icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+              onPressed: () async{
+                showUniversalDeleteDialog(
+                  context: context,
+                  content: "Do you want to remove $name from the squad?",
+                  onConfirm: () async {
+                    try{
+                      await FirebaseFirestore.instance.collection('teams').doc(widget.teamId).collection('players').doc(docId).delete();
+                      await FirebaseFirestore.instance.collection('teams').doc(widget.teamId).update({'squad_size': FieldValue.increment(-1)});
+                      
+                      _showSnackBar("$name successfully removed from squad.");
+                    } catch(e){
+                      _showSnackBar("Error removing player.");
+                    }
+                  }
+                );
+              },
+            ),
+          ],
+        )
       ),
     );
   }
@@ -340,6 +346,12 @@ class _SquadTabState extends State<SquadTab> {
           );
         },
       ),
+    );
+  }
+
+  void _showSnackBar(String text) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(text, style: const TextStyle(color: Colors.white)), backgroundColor: const Color(0xFF1E1E24))
     );
   }
 }
